@@ -1,0 +1,71 @@
+# 多阶段构建 - Go 版本最小化镜像
+FROM golang:1.21-alpine AS builder
+
+# 构建参数
+ARG BUILD_DATE
+ARG BUILD_VERSION=latest
+
+# 一次性配置所有镜像源和代理
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories && \
+    apk add --no-cache git gcc musl-dev
+
+WORKDIR /build
+
+# 配置Go模块代理(使用多个备选源)
+ENV GOPROXY=https://goproxy.cn,https://mirrors.aliyun.com/goproxy/,https://goproxy.io,direct
+ENV GO111MODULE=on
+
+# 复制依赖文件并下载
+COPY go.mod go.sum ./
+RUN go mod download
+
+# 复制源代码
+COPY *.go ./
+COPY api/ ./api/
+COPY db/ ./db/
+COPY models/ ./models/
+COPY services/ ./services/
+COPY utils/ ./utils/
+COPY config/ ./config/
+
+# 构建
+RUN CGO_ENABLED=1 GOOS=linux go build -a -ldflags '-linkmode external -extldflags "-static"' -o bookmarks .
+
+# 最终镜像
+FROM alpine:latest
+
+# 配置镜像源
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories && \
+    apk --no-cache add ca-certificates tzdata
+
+WORKDIR /app
+
+# 构建元数据
+LABEL build_date="${BUILD_DATE}"
+LABEL version="${BUILD_VERSION}"
+
+# 复制二进制文件
+COPY --from=builder /build/bookmarks ./ai-bookmark-service
+
+# 复制前端文件 (重构后的模块化结构)
+COPY index.html manifest.json sw.js icon.svg ./
+COPY css/ ./css/
+COPY js/ ./js/
+
+# 复制entrypoint
+COPY docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
+
+# 创建数据目录
+RUN mkdir -p /app/data
+
+# 暴露端口
+EXPOSE 8000
+
+# 环境变量
+ENV PORT=8000 \
+    API_TOKEN=your-secret-token-change-me \
+    AI_API_KEY="" \
+    AI_API_BASE=https://generativelanguage.googleapis.com/v1beta
+
+ENTRYPOINT ["./docker-entrypoint.sh"]

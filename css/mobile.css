@@ -1,0 +1,174 @@
+/* ========== 移动端适配 ========== */
+
+/* iOS 安全区域变量 */
+:root {
+    --safe-area-inset-top: env(safe-area-inset-top);
+    --safe-area-inset-bottom: env(safe-area-inset-bottom);
+    --safe-area-inset-left: env(safe-area-inset-left);
+    --safe-area-inset-right: env(safe-area-inset-right);
+}
+
+@media (max-width: 768px) {
+
+    /* iOS 安全区域适配 */
+    body {
+        padding-top: max(0px, var(--safe-area-inset-top));
+        padding-bottom: max(0px, var(--safe-area-inset-bottom));
+        padding-left: max(0px, var(--safe-area-inset-left));
+        padding-right: max(0px, var(--safe-area-inset-right));
+        /* 禁用 iOS 橡皮筋效果 */
+        overscroll-behavior: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* 触摸优化 - iOS 推荐最小触摸区域 44x44px */
+    button,
+    a,
+    .clickable {
+        min-height: 44px;
+        min-width: 44px;
+        /* iOS 触摸高亮优化 */
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+        /* 触摸反馈 */
+        transition: transform 0.1s, opacity 0.1s;
+    }
+
+    button:active,
+    a:active,
+    .clickable:active {
+        transform: scale(0.97);
+        opacity: 0.8;
+    }
+
+    /* 输入框优化 - 防止 iOS 自动缩放 */
+    input,
+    textarea,
+    select {
+        font-size: 16px !important;
+        -webkit-appearance: none;
+        border-radius: 8px;
+    }
+
+    /* 禁用长按选择 */
+    img,
+    button {
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+    }
+
+    /* 抽屉式菜单 */
+    .category-list {
+        position: fixed;
+        left: 0;
+        top: 50px;
+        bottom: 0;
+        width: 250px;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 999;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+        /* 安全区域适配 */
+        padding-bottom: var(--safe-area-inset-bottom);
+    }
+
+    .category-list.show {
+        transform: translateX(0);
+    }
+
+    /* 抽屉遮罩层 - 必须在抽屉之上才能接收点击 */
+    .drawer-overlay {
+        z-index: 1000;
+        pointer-events: none;
+    }
+
+    .drawer-overlay.show {
+        pointer-events: auto;
+    }
+
+    /* 顶部导航栏 - 安全区域适配 */
+    .navbar {
+        padding-top: var(--safe-area-inset-top);
+    }
+
+    /* 搜索框优化 */
+    .search-area {
+        margin: 0 10px;
+    }
+
+    .search-btn {
+        white-space: nowrap;
+        min-height: 44px;
+    }
+
+    /* 设置按钮简化 */
+    .settings-btn .btn-text {
+        display: none;
+    }
+
+    /* Logo作为触发器 */
+    .logo {
+        cursor: pointer;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+
+    /* 隐藏Logo文字 */
+    .logo-text {
+        display: none;
+    }
+
+    /* 添加按钮 - 安全区域适配 */
+    .add-btn {
+        bottom: calc(20px + var(--safe-area-inset-bottom));
+        /* 触摸优化 */
+        min-width: 56px;
+        min-height: 56px;
+    }
+
+    /* 书签列表 - 安全区域适配 */
+    .bookmark-area {
+        padding-bottom: calc(20px + var(--safe-area-inset-bottom));
+    }
+
+    /* 书签卡片触摸优化 */
+    .bookmark-item {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .bookmark-item:active {
+        transform: scale(0.98);
+    }
+
+    /* 模态框 - 安全区域适配 */
+    .modal-content {
+        max-height: calc(90vh - var(--safe-area-inset-top) - var(--safe-area-inset-bottom));
+        margin-bottom: var(--safe-area-inset-bottom);
+    }
+
+    /* 表单输入优化 */
+    .form-input,
+    .form-textarea {
+        font-size: 16px;
+        padding: 12px;
+        border-radius: 8px;
+    }
+
+    /* 滚动容器优化 */
+    .bookmark-list {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+}
+
+/* 横屏优化 */
+@media (max-width: 768px) and (orientation: landscape) {
+    .navbar {
+        padding-top: max(8px, var(--safe-area-inset-top));
+    }
+
+    .add-btn {
+        bottom: calc(10px + var(--safe-area-inset-bottom));
+    }
+}

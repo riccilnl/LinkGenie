@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Bear for bookmark and love!</title>
+
+    <!-- PWA配置 -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <meta name="theme-color" content="#1c1c1e">
+
+    <!-- iOS PWA支持 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Bookmark">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+    <!-- CSS 模块 -->
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/mobile.css">
+</head>
+
+<body>
+    <!-- 遮罩层 -->
+    <div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
+
+    <!-- 顶部导航条 -->
+    <div class="navbar">
+        <div class="logo" style="display: flex; align-items: center;" onclick="toggleDrawer()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                style="width: 24px; height: 24px; margin-right: 10px; fill: currentColor;">
+                <path fill="none" d="M0 0h24v24H0z" />
+                <path
+                    d="M17.5 2a4.5 4.5 0 0 1 2.951 7.897c.355.967.549 2.013.549 3.103A9 9 0 1 1 3.55 9.897a4.5 4.5 0 1 1 6.791-5.744 9.05 9.05 0 0 1 3.32 0A4.494 4.494 0 0 1 17.5 2zM10 13H8a4 4 0 0 0 7.995.2L16 13h-2a2 2 0 0 1-3.995.15L10 13z" />
+            </svg>
+            <span class="logo-text">Bear for bookmark and love!</span>
+        </div>
+        <div class="search-area">
+            <div class="search-wrapper">
+                <input type="text" class="search-input" id="searchInput" placeholder="搜索书签..."
+                    oninput="toggleClearBtn()">
+                <button class="search-clear-btn" id="searchClearBtn" onclick="clearSearch()">✕</button>
+            </div>
+            <button class="search-btn" onclick="searchBookmarks()">搜索</button>
+        </div>
+        <div class="nav-actions">
+            <button class="settings-btn" onclick="showWorkflows()">⚡ <span class="btn-text">自动化</span></button>
+            <button class="settings-btn" onclick="showSettings()">⚙️ <span class="btn-text">设置</span></button>
+        </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="main-content">
+        <!-- 左侧类别列表 -->
+        <div class="category-list" id="categoryListSidebar">
+            <div class="category-section">
+                <div class="category-title">分类</div>
+                <div class="category-item active" onclick="selectCategory('all', 'category', event)">
+                    <span>📚 所有</span>
+                    <span class="tag-count" id="totalCount">0</span>
+                </div>
+                <div class="category-item" onclick="selectCategory('unread', 'category', event)">
+                    <span>📖 未读</span>
+                    <span class="tag-count" id="unreadCount">0</span>
+                </div>
+                <div class="category-item" onclick="selectCategory('favorite', 'category', event)">
+                    <span>⭐ 收藏</span>
+                    <span class="tag-count" id="favoriteCount">0</span>
+                </div>
+            </div>
+
+            <!-- 文件夹部分 -->
+            <div class="category-section" id="folderSection">
+                <div class="category-title"
+                    style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;"
+                    onclick="toggleFolders()">
+                    <span id="folderSectionTitle">📁 文件夹</span>
+                    <button class="folder-add-btn" onclick="event.stopPropagation(); showCreateFolderModal()"
+                        title="新建文件夹">+</button>
+                </div>
+                <div id="folderList"></div>
+            </div>
+
+            <div class="category-section">
+                <div class="category-title">标签</div>
+                <div id="tagList"></div>
+            </div>
+        </div>
+
+        <!-- 右侧书签区域 -->
+        <div class="bookmark-area">
+            <div class="bookmark-list" id="bookmarkList"></div>
+        </div>
+    </div>
+
+    <!-- 添加按钮 -->
+    <button class="add-btn" onclick="showAddModal()">+</button>
+
+    <!-- 编辑/添加弹层 -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle">添加书签</div>
+            <div class="error-message" id="errorMessage"></div>
+            <form id="bookmarkForm">
+                <div class="form-group">
+                    <label class="form-label">网址 *</label>
+                    <input type="url" class="form-input" id="urlInput" required>
+                </div>
+                <div class="form-group" id="titleGroup">
+                    <label class="form-label">标题</label>
+                    <input type="text" class="form-input" id="titleInput">
+                </div>
+                <div class="form-group" id="descGroup">
+                    <label class="form-label">简介</label>
+                    <textarea class="form-textarea" id="descInput"></textarea>
+                </div>
+                <div class="form-group" id="tagsGroup">
+                    <label class="form-label">标签 (逗号分隔)</label>
+                    <input type="text" class="form-input" id="tagsInput">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="modal-btn secondary" onclick="closeModal()">取消</button>
+                    <button type="submit" class="modal-btn primary" id="submitBtn">确定</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 删除确认弹层 -->
+    <div class="modal" id="deleteModal">
+        <div class="modal-content">
+            <div class="modal-title">确认删除</div>
+            <p style="color: #8e8e93; margin-bottom: 20px;">确定要删除这个书签吗?</p>
+            <div class="modal-actions">
+                <button class="modal-btn secondary" onclick="closeDeleteModal()">取消</button>
+                <button class="modal-btn primary" style="background: #ff453a;" onclick="confirmDelete()">删除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 设置弹层 -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-title">设置</div>
+
+            <!-- API 配置 -->
+            <div class="form-group">
+                <label class="form-label">API 配置</label>
+                <p style="color: #8e8e93; font-size: 12px; margin-bottom: 8px;">配置后端服务地址和认证 Token</p>
+                <input type="text" class="form-input" id="apiBaseInput" placeholder="http://localhost:8000"
+                    style="margin-bottom: 8px;">
+                <input type="password" class="form-input" id="apiTokenInput" placeholder="API Token">
+                <button class="modal-btn secondary" onclick="saveApiConfig()" style="margin-top: 8px;">保存配置</button>
+                <span id="apiConfigStatus" style="margin-left: 12px; color: #34c759; font-size: 13px; display: none;">✓
+                    已保存</span>
+            </div>
+
+            <div style="border-top: 1px solid #2c2c2e; margin: 20px 0;"></div>
+
+            <!-- 导入书签 -->
+            <div class="form-group">
+                <label class="form-label">导入书签</label>
+                <p style="color: #8e8e93; font-size: 12px; margin-bottom: 8px;">支持Netscape HTML格式(Chrome/Firefox导出的书签)
+                </p>
+                <input type="file" accept=".html,.htm" id="importFile" style="display: none;"
+                    onchange="handleImportFile()">
+                <button class="modal-btn secondary"
+                    onclick="document.getElementById('importFile').click()">选择文件</button>
+                <span id="importFileName" style="margin-left: 12px; color: #8e8e93; font-size: 13px;"></span>
+            </div>
+
+            <div id="importProgress" style="display: none; margin-top: 12px;">
+                <div style="color: #8e8e93; font-size: 13px; margin-bottom: 4px;">导入中...</div>
+                <div style="background: #2c2c2e; height: 4px; border-radius: 2px; overflow: hidden;">
+                    <div id="importProgressBar"
+                        style="background: #0a84ff; height: 100%; width: 0%; transition: width 0.3s;"></div>
+                </div>
+            </div>
+
+            <!-- 导出书签 -->
+            <div class="form-group" style="margin-top: 24px;">
+                <label class="form-label">导出书签</label>
+                <p style="color: #8e8e93; font-size: 12px; margin-bottom: 8px;">导出为Netscape HTML格式</p>
+                <button class="modal-btn secondary" onclick="exportBookmarks()">导出所有书签</button>
+            </div>
+
+            <div style="border-top: 1px solid #2c2c2e; margin: 20px 0;"></div>
+
+            <!-- 标签优化 -->
+            <div class="form-group">
+                <label class="form-label">🏷️ 标签优化</label>
+                <p style="color: #8e8e93; font-size: 12px; margin-bottom: 12px;">
+                    智能整理标签,合并同义词,自动晋升高频标签
+                </p>
+
+                <!-- 标签统计 -->
+                <div id="tagStatsContainer"
+                    style="background: #2c2c2e; padding: 12px; border-radius: 8px; margin-bottom: 12px; display: none;">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 13px;">
+                        <div>
+                            <span style="color: #8e8e93;">总标签:</span>
+                            <span id="tagStatsTotal" style="color: #fff; margin-left: 4px;">-</span>
+                        </div>
+                        <div>
+                            <span style="color: #8e8e93;">核心:</span>
+                            <span id="tagStatsCore" style="color: #34c759; margin-left: 4px;">-</span>
+                        </div>
+                        <div>
+                            <span style="color: #8e8e93;">固定:</span>
+                            <span id="tagStatsFixed" style="color: #0a84ff; margin-left: 4px;">-</span>
+                        </div>
+                        <div>
+                            <span style="color: #8e8e93;">动态:</span>
+                            <span id="tagStatsDynamic" style="color: #ff9f0a; margin-left: 4px;">-</span>
+                        </div>
+                    </div>
+                    <div id="tagOptimizationNeeded"
+                        style="margin-top: 8px; padding: 8px; background: rgba(255, 159, 10, 0.2); border-radius: 4px; color: #ff9f0a; font-size: 12px; display: none;">
+                        ⚠️ 动态标签超过50个,建议优化
+                    </div>
+                </div>
+
+                <!-- 优化结果预览 -->
+                <div id="optimizationPreview"
+                    style="background: #2c2c2e; padding: 12px; border-radius: 8px; margin-bottom: 12px; display: none;">
+                    <div style="color: #fff; font-size: 13px; margin-bottom: 8px; font-weight: 500;">优化预览</div>
+                    <div id="optimizationActions"
+                        style="max-height: 200px; overflow-y: auto; font-size: 12px; color: #8e8e93;"></div>
+                    <div id="optimizationSummary"
+                        style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #3a3a3c; font-size: 12px;">
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 8px;">
+                    <button class="modal-btn secondary" onclick="loadTagStats()" style="flex: 1;">
+                        📊 查看统计
+                    </button>
+                    <button class="modal-btn secondary" onclick="previewTagOptimization()" style="flex: 1;">
+                        👁️ 预览优化
+                    </button>
+                    <button class="modal-btn primary" onclick="executeTagOptimization()"
+                        style="flex: 1; background: #ff9f0a;">
+                        ✨ 执行优化
+                    </button>
+                </div>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 32px;">
+                <button class="modal-btn secondary" onclick="closeSettingsModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 文件夹弹层 -->
+    <div class="modal" id="folderModal">
+        <div class="modal-content">
+            <div class="modal-title" id="folderModalTitle">新建文件夹</div>
+            <form id="folderForm" onsubmit="event.preventDefault();">
+                <div class="form-group">
+                    <label class="form-label">文件夹名称 *</label>
+                    <input type="text" class="form-input" id="folderName" placeholder="输入文件夹名称" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">选择颜色</label>
+                    <input type="hidden" id="folderColor" value="#0a84ff">
+                    <div id="colorPicker" class="color-picker-container"></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">选择图标</label>
+                    <input type="hidden" id="folderIcon" value="📁">
+                    <div id="iconPicker" class="icon-picker-container"></div>
+                </div>
+            </form>
+            <div class="modal-actions">
+                <button class="modal-btn secondary" onclick="closeFolderModal()">取消</button>
+                <button class="modal-btn primary" id="folderModalSave">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 工作流管理弹层 -->
+    <div class="modal" id="workflowModal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-title">⚡ 自动化工作流</div>
+
+            <!-- 工作流列表 -->
+            <div id="workflowListView">
+                <div style="margin-bottom: 16px;">
+                    <button class="modal-btn primary" onclick="showWorkflowEditor()">+ 新建工作流</button>
+                </div>
+                <div id="workflowList"></div>
+            </div>
+
+            <!-- 工作流编辑器 -->
+            <div id="workflowEditorView" style="display: none;">
+                <button class="modal-btn secondary" onclick="backToWorkflowList()" style="margin-bottom: 16px;">←
+                    返回列表</button>
+
+                <div class="form-group">
+                    <label class="form-label">工作流名称 *</label>
+                    <input type="text" class="form-input" id="workflowName" placeholder="例如：GitHub项目归类">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">描述</label>
+                    <input type="text" class="form-input" id="workflowDesc" placeholder="简要说明此工作流的用途">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">触发条件</label>
+                    <div style="margin-bottom: 8px;">
+                        <select id="workflowLogic" class="form-input" style="width: auto;">
+                            <option value="OR">满足任一条件</option>
+                            <option value="AND">满足所有条件</option>
+                        </select>
+                    </div>
+                    <div id="triggerList"></div>
+                    <div id="matchPreview"></div>
+                    <button class="modal-btn secondary" onclick="addTrigger()" style="margin-top: 8px;">+ 添加条件</button>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">执行动作</label>
+                    <div id="actionList"></div>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="modal-btn secondary" onclick="backToWorkflowList()">取消</button>
+                    <button class="modal-btn primary" id="saveWorkflowBtn">保存工作流</button>
+                </div>
+            </div>
+
+            <div class="modal-actions" id="workflowListActions">
+                <button class="modal-btn secondary" onclick="closeWorkflowModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript 模块 -->
+    <script src="js/config.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>

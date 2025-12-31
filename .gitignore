@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.venv/
+
+# 环境变量
+.env
+
+# 数据库
+data/
+*.db
+*.db-journal
+*.db.backup*
+
+# 日志
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 临时文件
+*.tmp
+*.bak
+*~
+
+# 编译文件
+*.exe
+*.o
+*.a
+*.bat
+
+# Go
+go.work
+
+# macOS
+.DS_Store
+
+# Deployment
+deploy.sh
+mcp/claude_desktop_config.json
+
+# Documentation
+docs/
+Docs/
+
+# Tests
+Test/
+tests/
+
+# Windows
+Thumbs.db
+
+# 测试截图
+tests/e2e/screenshots/*.png

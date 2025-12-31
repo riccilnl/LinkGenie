@@ -1,0 +1,313 @@
+/* ========== 组件样式 ========== */
+
+/* 书签卡片 */
+.bookmark-item {
+    background: #1c1c1e;
+    border-radius: 12px;
+    padding: 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.bookmark-item:hover {
+    background: #2c2c2e;
+}
+
+/* AI处理中的闪光动画 */
+.bookmark-item.ai-processing {
+    background: linear-gradient(90deg, #1c1c1e 0%, #2c2c2e 50%, #1c1c1e 100%) !important;
+    background-size: 200% 100% !important;
+    -webkit-animation: shimmer 2s infinite !important;
+    animation: shimmer 2s infinite !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.bookmark-item.ai-processing::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.5) 50%,
+            transparent 100%);
+    -webkit-animation: shimmer-sweep 1.5s infinite;
+    animation: shimmer-sweep 1.5s infinite;
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* AI处理标记 */
+.ai-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: rgba(10, 132, 255, 0.2);
+    border: 1px solid rgba(10, 132, 255, 0.3);
+    border-radius: 4px;
+    font-size: 11px;
+    color: #0a84ff;
+    margin-left: 8px;
+}
+
+.ai-badge .spinner {
+    width: 10px;
+    height: 10px;
+    border: 2px solid rgba(10, 132, 255, 0.3);
+    border-top-color: #0a84ff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.bookmark-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.bookmark-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: #fff;
+}
+
+.bookmark-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0.3;
+    transition: opacity 0.2s;
+}
+
+.bookmark-item:hover .bookmark-actions {
+    opacity: 1;
+}
+
+.action-btn {
+    padding: 4px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.action-btn:hover {
+    transform: scale(1.2);
+}
+
+.bookmark-desc {
+    font-size: 13px;
+    color: #8e8e93;
+    line-height: 1.5;
+    margin-bottom: 8px;
+    height: 97.5px;
+    display: -webkit-box;
+    -webkit-line-clamp: 5;
+    line-clamp: 5;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.bookmark-time {
+    font-size: 11px;
+    color: #636366;
+}
+
+/* iOS 触摸反馈优化 - 为交互元素添加自定义高亮 */
+.bookmark-item,
+.category-item,
+.action-btn,
+.modal-btn,
+.add-btn,
+button {
+    -webkit-tap-highlight-color: rgba(10, 132, 255, 0.1);
+}
+
+/* 弹层 */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    background: #1c1c1e;
+    border-radius: 16px;
+    padding: 24px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+.modal-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-label {
+    display: block;
+    font-size: 13px;
+    color: #8e8e93;
+    margin-bottom: 6px;
+}
+
+.form-input,
+.form-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    background: #2c2c2e;
+    border: 1px solid #3a3a3c;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 14px;
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.modal-btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.modal-btn.primary {
+    background: #0a84ff;
+    color: #fff;
+}
+
+.modal-btn.secondary {
+    background: #2c2c2e;
+    color: #fff;
+}
+
+/* 添加按钮 */
+.add-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 56px;
+    height: 56px;
+    background: #0a84ff;
+    border: none;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(10, 132, 255, 0.4);
+}
+
+.error-message {
+    background: #ff453a;
+    color: #fff;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    display: none;
+}
+
+.error-message.show {
+    display: block;
+}
+
+/* 颜色选择器 */
+.color-picker-container {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 8px 2px;
+    margin-top: 8px;
+    padding: 4px;
+}
+
+.color-option {
+    width: 26px;
+    height: 26px;
+    margin: 0 auto;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.color-option.selected {
+    border-color: #fff;
+    transform: scale(1.1);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+}
+
+.color-option:hover {
+    transform: scale(1.1);
+}
+
+/* 图标选择器 */
+.icon-picker-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+    max-height: 160px;
+    overflow-y: auto;
+    background: #2c2c2e;
+    padding: 12px;
+    border-radius: 12px;
+}
+
+.icon-option {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 0.2s;
+    user-select: none;
+}
+
+.icon-option:hover {
+    background: #3a3a3c;
+}
+
+.icon-option.selected {
+    background: rgba(10, 132, 255, 0.3);
+    border: 1px solid rgba(10, 132, 255, 0.5);
+}
