@@ -1,0 +1,157 @@
+/* Floating bookmark button styles */
+#bookmark-floating-container {
+    position: fixed;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 999999;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.bookmark-floating-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 0;
+    outline: none;
+}
+
+.bookmark-floating-btn svg {
+    width: 28px;
+    height: 28px;
+    color: white;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bookmark-floating-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.bookmark-floating-btn:active {
+    transform: scale(0.95);
+}
+
+.bookmark-floating-btn.loading {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.bookmark-floating-btn.loading svg {
+    animation: bookmark-spin 1s linear infinite;
+}
+
+@keyframes bookmark-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Toast notification styles */
+#bookmark-toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.bookmark-toast {
+    background: white;
+    color: #333;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    font-size: 14px;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateX(100px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: auto;
+    min-width: 200px;
+    max-width: 350px;
+    word-wrap: break-word;
+}
+
+.bookmark-toast.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.bookmark-toast-success {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.bookmark-toast-error {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+}
+
+.bookmark-toast-info {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    #bookmark-floating-container {
+        right: 15px;
+    }
+
+    .bookmark-floating-btn {
+        width: 48px;
+        height: 48px;
+    }
+
+    .bookmark-floating-btn svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    #bookmark-toast-container {
+        right: 15px;
+        left: 15px;
+    }
+
+    .bookmark-toast {
+        max-width: none;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .bookmark-toast {
+        background: #2d3748;
+        color: #e2e8f0;
+    }
+
+    .bookmark-toast-success {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .bookmark-toast-error {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+    }
+
+    .bookmark-toast-info {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+    }
+}

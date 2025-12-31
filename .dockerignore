@@ -1,0 +1,41 @@
+# 开发文件
+*.backup
+*.tmp
+*~
+.DS_Store
+
+# 测试文件
+test-refactoring.html
+
+# 文档 (除了 README)
+docs/
+*.md
+!README.md
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# 临时文件
+temp_deploy.txt
+
+# 编译文件
+bookmarks.exe
+*.exe
+
+# 数据库备份
+*.db.backup
+
+# 环境文件
+.env
+.env.local
+
+# Node modules (如果有)
+node_modules/
+
+# 清理脚本
+cleanup*.sh

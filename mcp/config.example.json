@@ -1,0 +1,14 @@
+{
+    "mcpServers": {
+        "ai-bookmarks": {
+            "command": "python",
+            "args": [
+                "d:/myWork/ai-bookmark-service/mcp/server.py"
+            ],
+            "env": {
+                "API_BASE_URL": "http://192.168.1.100:8080",
+                "API_TIMEOUT": "30.0"
+            }
+        }
+    }
+}

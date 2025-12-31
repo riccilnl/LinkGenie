@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <title>Bookmark Manager</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Left Content Area (80%) -->
+        <div class="content-area">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div class="logo">
+                    <svg class="logo-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="24" height="24" fill="none" />
+                        <path
+                            d="M17.5 2a4.5 4.5 0 0 1 2.951 7.897c.355.967.549 2.013.549 3.103A9 9 0 1 1 3.55 9.897a4.5 4.5 0 1 1 6.791-5.744 9.05 9.05 0 0 1 3.32 0A4.494 4.494 0 0 1 17.5 2zM10 13H8a4 4 0 0 0 7.995.2L16 13h-2a2 2 0 0 1-3.995.15L10 13z"
+                            fill="currentColor" />
+                    </svg>
+                </div>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="搜索书签...">
+                    <button class="search-clear" id="searchClear" style="display: none;" title="清除搜索">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                                fill="currentColor" />
+                        </svg>
+                    </button>
+                    <svg class="search-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2" fill="none" />
+                        <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" />
+                    </svg>
+                </div>
+                <button class="settings-btn" id="settingsBtn" title="设置">
+                    <svg class="settings-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"
+                            fill="currentColor" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Bookmark List -->
+            <div class="bookmark-list" id="bookmarkList">
+                <!-- Bookmarks will be dynamically inserted here -->
+            </div>
+        </div>
+
+        <!-- Right Tab Area (20%) -->
+        <div class="tab-area">
+            <div class="tab-buttons">
+                <button class="tab-btn active" data-tab="all">
+                    <svg class="tab-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" fill="currentColor" />
+                    </svg>
+                    <span>全部</span>
+                </button>
+                <button class="tab-btn" data-tab="unread">
+                    <svg class="tab-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"
+                            fill="currentColor" />
+                    </svg>
+                    <span>未读</span>
+                </button>
+                <button class="tab-btn" data-tab="favorites">
+                    <svg class="tab-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+                            fill="currentColor" />
+                    </svg>
+                    <span>收藏</span>
+                </button>
+                <button class="tab-btn" data-tab="folders">
+                    <svg class="tab-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"
+                            fill="currentColor" />
+                    </svg>
+                    <span>文件夹</span>
+                </button>
+
+            </div>
+
+            <!-- Settings Panel (will be shown in content area) -->
+            <div class="settings-content" id="settingsContent" style="display: none;">
+                <!-- Settings content will be shown in the left content area -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Panel Template (to be inserted into content area) -->
+    <template id="settingsTemplate">
+        <div class="settings-panel-full">
+            <div class="settings-header">
+                <h2>设置</h2>
+                <button class="settings-close-btn" id="settingsCloseBtn" title="关闭设置">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                            fill="currentColor" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- API 配置 -->
+            <div class="form-group">
+                <label class="form-label">API 配置</label>
+                <p style="color: #6b7280; font-size: 12px; margin-bottom: 8px;">配置后端服务地址和认证 Token</p>
+                <input type="text" class="form-input" id="apiBaseInput" placeholder="http://localhost:8000"
+                    style="margin-bottom: 8px;">
+                <input type="password" class="form-input" id="apiTokenInput" placeholder="API Token">
+                <button class="settings-btn-primary" style="margin-top: 8px;">保存配置</button>
+                <span id="apiConfigStatus" style="margin-left: 12px; color: #10b981; font-size: 13px; display: none;">✓
+                    已保存</span>
+            </div>
+
+            <div class="settings-divider"></div>
+
+            <!-- 主题设置 -->
+            <div class="form-group">
+                <label class="form-label">主题设置</label>
+                <p style="color: #6b7280; font-size: 12px; margin-bottom: 8px;">选择您喜欢的主题模式</p>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <button class="theme-toggle-btn" id="lightThemeBtn" data-theme="light">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width: 20px; height: 20px;">
+                            <circle cx="12" cy="12" r="5" fill="currentColor" />
+                            <path
+                                d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                        <span>亮色</span>
+                    </button>
+                    <button class="theme-toggle-btn" id="darkThemeBtn" data-theme="dark">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width: 20px; height: 20px;">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor" />
+                        </svg>
+                        <span>暗色</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="settings-divider"></div>
+
+            <!-- 导入书签 -->
+            <div class="form-group">
+                <label class="form-label">导入书签</label>
+                <p style="color: #6b7280; font-size: 12px; margin-bottom: 8px;">支持Netscape HTML格式(Chrome/Firefox导出的书签)
+                </p>
+                <input type="file" accept=".html,.htm" id="importFile" style="display: none;">
+                <button class="settings-btn-secondary">选择文件</button>
+                <span id="importFileName" style="margin-left: 12px; color: #6b7280; font-size: 13px;"></span>
+            </div>
+
+            <div id="importProgress" style="display: none; margin-top: 12px;">
+                <div style="color: #6b7280; font-size: 13px; margin-bottom: 4px;">导入中...</div>
+                <div style="background: #e5e7eb; height: 4px; border-radius: 2px; overflow: hidden;">
+                    <div id="importProgressBar"
+                        style="background: #3b82f6; height: 100%; width: 0%; transition: width 0.3s;"></div>
+                </div>
+            </div>
+
+            <!-- 导出书签 -->
+            <div class="form-group" style="margin-top: 24px;">
+                <label class="form-label">导出书签</label>
+                <p style="color: #6b7280; font-size: 12px; margin-bottom: 8px;">导出为Netscape HTML格式</p>
+                <button class="settings-btn-secondary">导出所有书签</button>
+            </div>
+        </div>
+    </template>
+
+    <!-- Folder Popup Menu -->
+    <div class="folder-popup" id="folderPopup" style="display: none;">
+        <div class="folder-popup-content">
+            <div class="folder-popup-header">
+                <h3>选择文件夹</h3>
+                <button class="folder-popup-close" id="folderPopupClose">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                            fill="currentColor" />
+                    </svg>
+                </button>
+            </div>
+            <div class="folder-list" id="folderList">
+                <!-- Folders will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="sidepanel.js"></script>
+</body>
+
+</html>

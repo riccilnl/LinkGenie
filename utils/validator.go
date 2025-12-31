@@ -1,0 +1,129 @@
+package utils
+
+import (
+	"fmt"
+	"net/url"
+	"regexp"
+
+	"ai-bookmark-service/models"
+)
+
+// ValidateBookmarkCreate 验证书签创建请求
+func ValidateBookmarkCreate(bm *models.BookmarkCreate) error {
+	// 验证 URL
+	if bm.URL == "" {
+		return fmt.Errorf("URL不能为空")
+	}
+	
+	// 规范化URL（自动添加协议）
+	normalizedURL, err := NormalizeURL(bm.URL)
+	if err != nil {
+		return fmt.Errorf("无效的URL: %s", bm.URL)
+	}
+	bm.URL = normalizedURL
+	
+	// 验证标题长度
+	if len(bm.Title) > 200 {
+		return fmt.Errorf("标题过长（最多200字符）")
+	}
+	
+	// 验证描述长度
+	if len(bm.Description) > 1000 {
+		return fmt.Errorf("描述过长（最多1000字符）")
+	}
+	
+	// 验证笔记长度
+	if len(bm.Notes) > 2000 {
+		return fmt.Errorf("笔记过长（最多2000字符）")
+	}
+	
+	// 验证标签
+	if len(bm.TagNames) > 10 {
+		return fmt.Errorf("标签过多（最多10个）")
+	}
+	
+	for _, tag := range bm.TagNames {
+		if len(tag) > 50 {
+			return fmt.Errorf("标签名过长: %s（最多50字符）", tag)
+		}
+		if !isValidTagName(tag) {
+			return fmt.Errorf("标签包含非法字符: %s", tag)
+		}
+	}
+	
+	return nil
+}
+
+// ValidateFolderCreate 验证文件夹创建请求
+func ValidateFolderCreate(folder *models.FolderCreate) error {
+	if folder.Name == "" {
+		return fmt.Errorf("文件夹名称不能为空")
+	}
+	
+	if len(folder.Name) > 100 {
+		return fmt.Errorf("文件夹名称过长（最多100字符）")
+	}
+	
+	// 验证颜色格式（可选）
+	if folder.Color != "" && !isValidColor(folder.Color) {
+		return fmt.Errorf("无效的颜色格式: %s", folder.Color)
+	}
+	
+	return nil
+}
+
+// NormalizeURL 规范化URL，自动添加协议前缀
+func NormalizeURL(urlStr string) (string, error) {
+	// 去除首尾空格
+	urlStr = regexp.MustCompile(`^\s+|\s+$`).ReplaceAllString(urlStr, "")
+	
+	// 如果URL为空，返回错误
+	if urlStr == "" {
+		return "", fmt.Errorf("URL不能为空")
+	}
+	
+	// 检查是否已经包含协议
+	hasScheme := regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.-]*://`).MatchString(urlStr)
+	
+	if !hasScheme {
+		// 自动添加 https:// 协议
+		urlStr = "https://" + urlStr
+	}
+	
+	// 解析URL
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return "", err
+	}
+	
+	// 验证协议必须是 http 或 https
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return "", fmt.Errorf("不支持的协议: %s（仅支持http和https）", u.Scheme)
+	}
+	
+	// 验证必须有主机名
+	if u.Host == "" {
+		return "", fmt.Errorf("URL缺少主机名")
+	}
+	
+	return u.String(), nil
+}
+
+// isValidURL 验证 URL 格式（已废弃，使用 NormalizeURL 代替）
+func isValidURL(urlStr string) bool {
+	_, err := NormalizeURL(urlStr)
+	return err == nil
+}
+
+// isValidTagName 验证标签名（允许字母、数字、中文、下划线、连字符、空格）
+func isValidTagName(tag string) bool {
+	// 允许字母、数字、中文、下划线、连字符、空格
+	matched, _ := regexp.MatchString(`^[\w\-\s\p{Han}]+$`, tag)
+	return matched
+}
+
+// isValidColor 验证颜色格式（#RRGGBB）
+func isValidColor(color string) bool {
+	matched, _ := regexp.MatchString(`^#[0-9A-Fa-f]{6}$`, color)
+	return matched
+}
