@@ -1,108 +1,141 @@
-# Chrome书签管理插件
+# 🧩 AI LinkGenie - Chrome 扩展
 
-一个现代化的Chrome浏览器书签管理扩展程序。
+一个现代化、轻量级的 Chrome 浏览器书签管理扩展，深度集成 LinkGenie 后端。
 
-## 功能特点
+---
 
-- **80/20布局**: 内容区域占80%，Tab区域占20%，最大化书签展示空间
-- **可爱的小熊Logo**: 独特的品牌标识
-- **实时搜索**: 快速搜索书签标题、描述和标签
-- **现代化卡片设计**: 美观的书签卡片展示
-- **多Tab导航**: 全部、未读、归档、设置四个功能区
-- **设置面板**: 深色模式、自动同步等个性化设置
+## ✨ 核心功能
 
-## 安装方法
+### 1. 📌 一键收藏浮动按钮
+在任何网页右侧显示一个**优雅的浮动按钮**，点击即可秒速保存当前页面为书签。
+- 🎯 **一键保存**：无需打开任何菜单，点击即存。
+- 🎨 **视觉优雅**：渐变设计 + 流畅动画，不干扰页面阅读。
+- 📱 **响应式设计**：自适应移动端屏幕。
+- ✅ **即时反馈**：保存成功/失败时显示 Toast 通知。
+- 🌙 **深色模式支持**：自动适配系统主题。
 
-1. 打开Chrome浏览器
-2. 访问 `chrome://extensions/`
-3. 开启右上角的"开发者模式"
-4. 点击"加载已解压的扩展程序"
-5. 选择 `chrome-extension` 文件夹
+### 2. 🗂️ 侧边栏书签管理面板
+使用 Chrome 原生 **Side Panel API**，提供沉浸式的书签管理体验。
+- 🔍 **实时搜索**：按标题、描述或标签快速过滤书签。
+- 📂 **多维度筛选**：全部 / 未读 / 收藏 / 文件夹四种视图。
+- 🎨 **现代化卡片设计**：清晰展示书签标题、描述与标签。
+- ⚙️ **设置面板**：配置后端 API 地址、Token、主题模式。
+- 📥 **导入/导出**：支持 Netscape HTML 格式（兼容 Chrome/Firefox 原生导出）。
 
-## 项目结构
+### 3. 🔗 后端深度集成
+与 LinkGenie 后端无缝对接，享受 AI 自动增强能力。
+- 🤖 **AI 自动补全**：保存后，后端自动为书签生成标题、描述和标签。
+- 🏷️ **标签智能管理**：支持标签优化、同义词合并。
+- 📁 **文件夹分类**：支持 Emoji 图标与色彩编码的文件夹系统。
+
+---
+
+## 📦 安装方法
+
+由于本扩展尚未发布至 Chrome 应用商店，请按照以下步骤**手动安装**：
+
+### 步骤 1：克隆项目
+```bash
+git clone https://github.com/YOUR_USERNAME/ai-bookmark-service.git
+cd ai-bookmark-service
+```
+
+### 步骤 2：加载扩展
+1. 打开 Chrome 浏览器，访问 `chrome://extensions/`。
+2. 点击右上角的 **"开发者模式"** 开关，启用开发者模式。
+3. 点击左上角的 **"加载已解压的扩展程序"**。
+4. 在文件选择器中，选中项目根目录下的 `chrome-extension` 文件夹。
+5. 扩展安装成功后，点击浏览器右上角的**拼图图标**，将 **LinkGenie** 固定到工具栏。
+
+### 步骤 3：配置后端
+1. 点击扩展图标，打开侧边栏。
+2. 点击右上角的 **⚙️ 设置** 按钮。
+3. 填入您的后端 API 地址（例如：`http://localhost:8080`）。
+4. 填入您的 API Token（在后端 `.env` 文件中配置的 `API_TOKEN`）。
+5. 点击 **"保存配置"**。
+
+---
+
+## 🎯 使用指南
+
+### 快速保存书签
+1. 浏览到任意网页。
+2. 点击页面右侧的 **紫色浮动按钮**（带 "+" 图标）。
+3. 等待成功提示（绿色 Toast）。
+4. 打开侧边栏即可查看已保存的书签。
+
+### 管理书签
+1. 点击扩展图标，打开侧边栏。
+2. 使用顶部搜索框快速查找书签。
+3. 点击右侧 Tab 切换视图：
+   - **全部**：显示所有书签。
+   - **未读**：筛选未读书签。
+   - **收藏**：筛选收藏书签。
+   - **文件夹**：按文件夹分类浏览。
+
+### 主题切换
+1. 打开侧边栏，点击 **⚙️ 设置**。
+2. 在 **"主题设置"** 区域选择 **亮色** 或 **暗色**。
+3. 主题立即生效。
+
+---
+
+## 🛠️ 技术栈
+
+- **Manifest V3**：使用 Chrome 最新扩展规范。
+- **Side Panel API**：原生侧边栏体验。
+- **Content Scripts**：注入浮动按钮到所有网页。
+- **Background Service Worker**：处理书签保存逻辑。
+- **原生 JavaScript (ES6+)**：无框架依赖，轻量高效。
+- **CSS3**：现代化设计 + Flexbox 布局。
+
+---
+
+## 📂 项目结构
 
 ```
 chrome-extension/
-├── manifest.json       # 扩展配置文件
-├── popup.html         # 弹出窗口HTML
-├── popup.js           # 功能逻辑脚本
-├── styles.css         # 样式文件
-├── icons/             # 图标文件夹
-│   ├── icon16.svg
-│   ├── icon48.svg
-│   └── icon128.svg
-└── README.md          # 说明文档
+├── manifest.json          # 扩展配置文件 (Manifest V3)
+├── background.js          # 后台服务脚本 (处理 API 请求)
+├── sidepanel.html         # 侧边栏 HTML 界面
+├── sidepanel.js           # 侧边栏逻辑脚本
+├── content.js             # 内容脚本 (浮动按钮)
+├── content.css            # 浮动按钮样式
+├── styles.css             # 侧边栏样式
+├── icons/                 # 扩展图标
+│   ├── icon16.png
+│   ├── icon48.png
+│   └── icon128.png
+└── README.md              # 说明文档
 ```
 
-## 使用说明
+---
 
-### 主界面
-- **搜索框**: 输入关键词实时过滤书签
-- **书签卡片**: 点击卡片在新标签页打开链接
-- **标签**: 快速识别书签分类
+## 🔐 权限说明
 
-### Features
+本扩展需要以下权限：
+- **`storage`**：保存 API 配置和用户设置。
+- **`bookmarks`**：读取浏览器书签（未来功能）。
+- **`sidePanel`**：使用 Chrome 侧边栏 API。
+- **`activeTab`**：获取当前页面信息（标题、URL、描述）。
+- **`http://*/*` 和 `https://*/*`**：在所有网页注入浮动按钮。
 
-- **Side Panel Interface**: Modern, clean UI for managing bookmarks
-- **Search Functionality**: Quickly find bookmarks by title, description, or tags
-- **Tag Support**: Organize bookmarks with tags
-- **Theme Toggle**: Switch between light and dark modes
-- **API Integration**: Connects to your bookmark service backend
-- **Floating Bookmark Button**: Quick-save any webpage with a single click from a floating button
+---
 
-### Floating Bookmark Button
+## 🚀 未来计划
 
-A convenient floating button appears on the right side of every webpage, allowing you to instantly save the current page as a bookmark.
+- [ ] **离线支持**：本地缓存书签，支持离线查看。
+- [ ] **快捷键支持**：通过键盘快捷键快速保存书签。
+- [ ] **右键菜单集成**：右键点击链接即可保存。
+- [ ] **书签编辑**：在侧边栏直接编辑书签标题、描述和标签。
+- [ ] **批量操作**：批量删除、移动、导出书签。
 
-**Features:**
-- 🎯 One-click bookmark saving
-- 📍 Fixed position on the right side (doesn't interfere with page content)
-- 🎨 Beautiful gradient design with smooth animations
-- 📱 Responsive design (adapts to mobile screens)
-- ✅ Success/error notifications with toast messages
-- 🌙 Dark mode support
-- 🔄 Loading state during save operation
+---
 
-**How to use:**
-1. Browse to any webpage you want to bookmark
-2. Click the purple floating button with the "+" icon on the right side
-3. Wait for the success notification
-4. Open the side panel to view your saved bookmark
+## 📄 开源协议
 
-### Tab功能
-- **全部**: 显示所有书签(默认)
-- **未读**: 未读书签管理(预留功能)
-- **归档**: 已归档书签(预留功能)
-- **设置**: 个性化配置选项
+本项目采用 [MIT License](../LICENSE) 协议开源。
 
-### 设置选项
-- **深色模式**: 切换界面主题
-- **自动同步**: 自动同步书签数据
-- **每页显示数量**: 自定义显示条数
+---
 
-## 技术栈
-
-- HTML5
-- CSS3 (现代化设计、Flexbox布局)
-- JavaScript (原生ES6+)
-- Chrome Extension API
-
-## 开发说明
-
-当前版本使用模拟数据进行演示。后续可以集成Chrome Bookmarks API实现真实书签管理功能。
-
-### 扩展功能建议
-- 集成Chrome Bookmarks API
-- 实现书签添加/编辑/删除
-- 书签导入/导出
-- 云端同步
-- 标签管理系统
-- 未读/归档状态管理
-
-## 版本
-
-v1.0.0 - 初始版本
-
-## 许可
-
-MIT License
+**⭐ 如果这个扩展帮到了您，请给项目一个 Star 以示支持！**

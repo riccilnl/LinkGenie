@@ -1,7 +1,7 @@
 {
-  "name": "AI Bookmark Service",
-  "short_name": "AI书签",
-  "description": "AI 增强的智能书签管理服务",
+  "name": "LinkGenie",
+  "short_name": "LinkGenie",
+  "description": "你的智能书签精灵 - AI 增强的书签管理服务",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
