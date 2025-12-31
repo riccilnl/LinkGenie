@@ -1,4 +1,4 @@
-# 🤖 AI Bookmark Service：从此告别繁琐，效率提升 3 倍！🚀
+# 🧞 LinkGenie：你的智能书签精灵，效率提升 3 倍！🚀
 
 [![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat-square&logo=go)](https://go.dev/)
 [![Docker](https://img.shields.io/badge/Docker-Supported-2496ED?style=flat-square&logo=docker)](https://www.docker.com/)
@@ -9,7 +9,7 @@
 - ❌ **整理地狱**：手动打标签太累，书签库最后乱成一团，成了“收藏从未停止，查找从未开始”。
 - ❌ **知识断层**：存了一堆干货，但在用 Claude 或 Cursor 协作时，AI 却无法感知你的知识沉淀。
 
-**AI Bookmark Service** 正是为此而生。它不仅是一个书签工具，更是你的**“第二大脑”自动化索引器**。
+**LinkGenie** 正是为此而生。它不仅是一个书签工具，更是你的**“第二大脑”自动化索引器**。
 
 ---
 
@@ -46,7 +46,7 @@
 version: '3.8'
 services:
   bookmarks:
-    image: riccilnl/ai-bookmark-service:latest
+    image: riccilnl/linkgenie:latest
     ports:
       - "8080:8080"
     volumes:
@@ -68,7 +68,7 @@ services:
 3. **开启开发者模式**：点击右上角的“**开发者模式**”开关。
 4. **加载插件**：点击左上角的“**加载已解压的扩展程序**”。
 5. **选择文件夹**：在文件选择器中选中本项目根目录下的 `chrome-extension` 文件夹。
-6. **固定插件**：点击浏览器右上角的拼图图标，将 **AI Bookmark** 固定到工具栏。
+6. **固定插件**：点击浏览器右上角的拼图图标，将 **LinkGenie** 固定到工具栏。
 
 *提示：安装后在设置中填入您的后端 API 地址和 Token 即可开始使用！*
 
