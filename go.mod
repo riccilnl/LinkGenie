@@ -1,4 +1,4 @@
-module ai-bookmark-service
+module github.com/riccilnl/LinkGenie
 
 go 1.23.0
 

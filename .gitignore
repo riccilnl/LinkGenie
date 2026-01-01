@@ -1,3 +1,6 @@
+# 这是公开仓库专用的 .gitignore
+# 使用方法：同步到公开仓库时，用这个文件替换 .gitignore
+
 # Python
 __pycache__/
 *.py[cod]
@@ -17,7 +20,9 @@ build/
 data/
 *.db
 *.db-journal
-*.db.backup*
+*.db-backup*
+*.db-shm
+*.db-wal
 
 # 日志
 *.log
@@ -45,19 +50,21 @@ go.work
 # macOS
 .DS_Store
 
-# Deployment (私有仓库保留 deploy.sh，只在公开仓库忽略)
+# Deployment
+deploy.sh
 mcp/claude_desktop_config.json
 
-# 测试临时文件（保留测试代码，只忽略测试产生的数据库）
-Test/*.db
-Test/*.db-shm
-Test/*.db-wal
-tests/*.db
-tests/*.db-shm
-tests/*.db-wal
+# 🚫 公开仓库排除项（私有仓库保留）
+# 开发文档
+Docs/
+docs/
+
+# 测试代码
+Test/
+tests/
+
+# 同步脚本（避免泄露私有仓库信息）
+scripts/sync-to-public.sh
 
 # Windows
 Thumbs.db
-
-# 测试截图
-tests/e2e/screenshots/*.png
