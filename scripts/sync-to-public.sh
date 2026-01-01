@@ -43,26 +43,24 @@ echo -e "${YELLOW}🧹 清理不公开的内容...${NC}"
 
 # 删除目录
 rm -rf Docs/ docs/ Test/ tests/ scripts/
-echo "  ✓ 已删除: Docs/, docs/, Test/, tests/, scripts/"
+echo "  ✓ 已删除: 开发文档、测试目录与私有脚本"
 
-# 删除 Chrome 扩展调试文件
-rm -f chrome-extension/debug-advanced.js
-rm -f chrome-extension/debug-theme.js
-rm -f chrome-extension/diagnose-border.js
-rm -f chrome-extension/test-border-fix.js
-rm -f chrome-extension/find-rounded.js
-echo "  ✓ 已删除: Chrome 扩展调试文件 (5个)"
+# 深度清理 Chrome 扩展 (删除所有调试和辅助脚本)
+find chrome-extension -name "debug-*" -delete
+find chrome-extension -name "diagnose-*" -delete
+find chrome-extension -name "test-*" -delete
+find chrome-extension -name "find-*" -delete
+echo "  ✓ 已清除: Chrome 扩展的所有调试残留"
 
-# 删除测试文件
-rm -f utils/validator_test.go
-rm -f mcp/mcp_server_test.go
-echo "  ✓ 已删除: Go 测试文件 (2个)"
+# 删除项目各处的测试文件
+find . -name "*_test.go" -delete
+echo "  ✓ 已清除: 所有 Go 测试文件 (*_test.go)"
 
-# 删除部署和配置文件
+# 删除部署和冗余配置文件
 rm -f deploy.sh
-rm -f mcp/claude_desktop_config.json
-rm -f Dockerfile.fast Dockerfile.backup Dockerfile.optimized
-echo "  ✓ 已删除: 部署脚本和冗余 Dockerfile (4个)"
+rm -f mcp/claude_desktop_config.json mcp/mcp_server_test.go
+rm -f Dockerfile.fast Dockerfile.backup Dockerfile.optimized Dockerfile.backup*
+echo "  ✓ 已删除: 部署脚本与冗余 Dockerfile"
 
 # 删除运行时文件 (以防万一)
 rm -f bookmarks.db bookmarks.db-shm bookmarks.db-wal bookmarks.exe .env
