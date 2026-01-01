@@ -65,7 +65,7 @@ rm -f Dockerfile.fast Dockerfile.backup Dockerfile.optimized
 echo "  ✓ 已删除: 部署脚本和冗余 Dockerfile (4个)"
 
 # 删除运行时文件 (以防万一)
-rm -f bookmarks.db bookmarks.exe .env
+rm -f bookmarks.db bookmarks.db-shm bookmarks.db-wal bookmarks.exe .env
 echo "  ✓ 已删除: 运行时文件 (如果存在)"
 
 echo -e "${GREEN}✓ 清理完成${NC}"
