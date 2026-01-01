@@ -90,7 +90,7 @@ func TestNormalizeURL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := NormalizeURL(tt.input)
-			
+
 			if tt.shouldError {
 				if err == nil {
 					t.Errorf("Expected error for input '%s', but got none", tt.input)
@@ -179,7 +179,7 @@ func TestValidateBookmarkCreate(t *testing.T) {
 			bookmark: &models.BookmarkCreate{
 				URL:      "example.com",
 				Title:    "Example",
-				TagNames: []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"},
+				TagNames: make([]string, 51), // 现在上限是 50
 			},
 			shouldError: true,
 		},
@@ -198,7 +198,7 @@ func TestValidateBookmarkCreate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := ValidateBookmarkCreate(tt.bookmark)
-			
+
 			if tt.shouldError {
 				if err == nil {
 					t.Errorf("Expected error but got none")

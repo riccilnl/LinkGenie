@@ -119,12 +119,14 @@ func RateLimitMiddleware(limiter *RateLimiter) func(http.Handler) http.Handler {
 }
 
 // AuthMiddleware 认证中间件
-func AuthMiddleware(apiToken string) func(http.Handler) http.Handler {
+func AuthMiddleware(getToken func() string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// 跳过认证的路径
 			skipAuthPaths := []string{
 				"/health",
+				"/api/system/status",
+				"/api/system/config", // 允许在引导页设置配置
 				"/",
 				"/index.html",
 				"/sw.js",
@@ -136,37 +138,50 @@ func AuthMiddleware(apiToken string) func(http.Handler) http.Handler {
 			}
 
 			// 检查是否是跳过认证的路径
-			for _, path := range skipAuthPaths {
-				// 特殊处理根路径：必须精确匹配
-				if path == "/" {
-					if r.URL.Path == "/" {
-						next.ServeHTTP(w, r)
-						return
-					}
-					continue
-				}
+			path := r.URL.Path
 
-				// 后缀为 / 的通常是文件夹或 API 前缀
-				if strings.HasSuffix(path, "/") {
-					if strings.HasPrefix(r.URL.Path, path) {
-						next.ServeHTTP(w, r)
-						return
-					}
-				} else {
-					// 否则要求完全匹配 (针对文件或特定路径)
-					if r.URL.Path == path {
-						next.ServeHTTP(w, r)
-						return
-					}
+			// 核心：强制放行系统管理接口，确保引导页可用
+			if strings.HasPrefix(path, "/api/system/") {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			for _, skipPath := range skipAuthPaths {
+				// 精确匹配
+				if path == skipPath {
+					next.ServeHTTP(w, r)
+					return
+				}
+				// 前缀匹配 (仅针对非根路径的文件夹型路径，如 /static/)
+				if skipPath != "/" && strings.HasSuffix(skipPath, "/") && strings.HasPrefix(path, skipPath) {
+					next.ServeHTTP(w, r)
+					return
 				}
 			}
 
 			// 对于需要认证的路径,检查 token
-			token := r.Header.Get("Authorization")
-			validToken := "Bearer " + apiToken
-			validTokenAlt := "Token " + apiToken
-			if token != validToken && token != validTokenAlt {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			apiToken := getToken()
+
+			// 处理 Authorization 头
+			authHeader := strings.TrimSpace(r.Header.Get("Authorization"))
+			if authHeader == "" {
+				http.Error(w, "Unauthorized: Missing token", http.StatusUnauthorized)
+				return
+			}
+
+			// 支持 "Bearer <token>" 和 "Token <token>" 格式
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) != 2 {
+				http.Error(w, "Unauthorized: Invalid header format", http.StatusUnauthorized)
+				return
+			}
+
+			prefix := strings.ToLower(parts[0])
+			providedToken := strings.TrimSpace(parts[1])
+
+			if (prefix != "bearer" && prefix != "token") || providedToken != apiToken {
+				log.Printf("🚫 认证失败: Prefix=%s, Header=%s", prefix, authHeader)
+				http.Error(w, "Unauthorized: Invalid token", http.StatusUnauthorized)
 				return
 			}
 
@@ -193,10 +208,24 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// responseWriter 是一个包装器，用于捕获状态码
+type responseWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	rw.status = code
+	rw.ResponseWriter.WriteHeader(code)
+}
+
 // LoggingMiddleware 日志中间件
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
+
+		// 包装 ResponseWriter 以获取状态码
+		rw := &responseWriter{ResponseWriter: w, status: http.StatusOK}
 
 		// 记录请求(不记录敏感信息)
 		referer := r.Header.Get("Referer")
@@ -211,11 +240,11 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		log.Printf("📥 请求: %s %s | IP: %s | Referer: %s | UA: %s",
 			r.Method, r.URL.Path, r.RemoteAddr, referer, userAgent)
 
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(rw, r)
 
-		// 记录响应时间
+		// 记录响应时间和状态码
 		duration := time.Since(start)
-		log.Printf("✅ 完成: %s %s 耗时: %v", r.Method, r.URL.Path, duration)
+		log.Printf("✅ 完成: %s %s | 状态: %d | 耗时: %v", r.Method, r.URL.Path, rw.status, duration)
 	})
 }
 

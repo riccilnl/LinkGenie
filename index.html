@@ -340,6 +340,57 @@
         </div>
     </div>
 
+    <!-- 引导页面 Overlay -->
+    <div id="onboardingOverlay" class="onboarding-overlay">
+        <div class="onboarding-card">
+            <img src="icon.svg" alt="LinkGenie Logo" class="onboarding-logo">
+            <h1 class="onboarding-title">遇见 LinkGenie</h1>
+            <p class="onboarding-subtitle">欢迎来到你的私人智能书签库。让我们简单配置一下，开启高效的收藏之旅。</p>
+
+            <div class="onboarding-form">
+                <div class="onboarding-input-group">
+                    <label class="onboarding-label">服务器地址</label>
+                    <input type="text" id="onboardingApiBase" class="onboarding-input"
+                        placeholder="http://您的服务器IP:8080">
+                </div>
+
+                <div class="onboarding-input-group">
+                    <label class="onboarding-label">服务器认证 Token</label>
+                    <input type="password" id="onboardingApiToken" class="onboarding-input" placeholder="设置您的访问密钥">
+                </div>
+
+                <!-- AI 配置折叠区域 -->
+                <div class="onboarding-section">
+                    <div class="onboarding-section-header" onclick="toggleOnboardingAi()">
+                        <span class="onboarding-label">AI 增强配置 (可选)</span>
+                        <span id="aiToggleIcon">▼</span>
+                    </div>
+                    <div id="onboardingAiFields" class="onboarding-section-content">
+                        <div class="onboarding-input-group">
+                            <label class="onboarding-label">API Key</label>
+                            <input type="password" id="onboardingAiKey" class="onboarding-input"
+                                placeholder="OpenAI/DeepSeek Key">
+                        </div>
+                        <div class="onboarding-input-group">
+                            <label class="onboarding-label">API 代理/地址</label>
+                            <input type="text" id="onboardingAiEndpoint" class="onboarding-input"
+                                placeholder="https://api.openai.com/v1/chat/completions">
+                        </div>
+                        <div class="onboarding-input-group">
+                            <label class="onboarding-label">模型名称</label>
+                            <input type="text" id="onboardingAiModel" class="onboarding-input"
+                                placeholder="gpt-4o / deepseek-chat">
+                        </div>
+                    </div>
+                </div>
+
+                <button class="onboarding-btn" onclick="testAndSaveOnboarding()"
+                    style="margin-top: 12px;">保存并开启之旅</button>
+                <div id="onboardingStatus" class="onboarding-status"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- JavaScript 模块 -->
     <script src="js/config.js"></script>
     <script src="js/ui.js"></script>

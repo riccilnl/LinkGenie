@@ -194,6 +194,54 @@
         </div>
     </div>
 
+    <!-- Onboarding Overlay -->
+    <div id="onboardingOverlay" class="onboarding-overlay" style="display: none;">
+        <div class="onboarding-card">
+            <img src="icons/icon128.png" alt="LinkGenie Logo" class="onboarding-logo">
+            <h1 class="onboarding-title">LinkGenie</h1>
+            <p class="onboarding-subtitle">遇见你的灵感采集器。请先连接到后端服务以开启同步。</p>
+
+            <div class="onboarding-form">
+                <div class="onboarding-input-group">
+                    <label class="onboarding-label">服务器地址</label>
+                    <input type="text" id="onboardingApiBase" class="onboarding-input" placeholder="http://ip:8080">
+                </div>
+
+                <div class="onboarding-input-group">
+                    <label class="onboarding-label">认证 Token</label>
+                    <input type="password" id="onboardingApiToken" class="onboarding-input" placeholder="访问服务器的密钥">
+                </div>
+
+                <!-- AI 配置 (折叠) -->
+                <div class="onboarding-section">
+                    <div class="onboarding-section-header" id="onboardingAiHeader">
+                        <span class="onboarding-label">AI 增强配置 (可选)</span>
+                        <span id="aiToggleIcon">▼</span>
+                    </div>
+                    <div id="onboardingAiFields" class="onboarding-section-content">
+                        <div class="onboarding-input-group">
+                            <label class="onboarding-label">API Key</label>
+                            <input type="password" id="onboardingAiKey" class="onboarding-input"
+                                placeholder="OpenAI/DeepSeek Key">
+                        </div>
+                        <div class="onboarding-input-group">
+                            <label class="onboarding-label">API 地址</label>
+                            <input type="text" id="onboardingAiEndpoint" class="onboarding-input" placeholder="代理地址">
+                        </div>
+                        <div class="onboarding-input-group">
+                            <label class="onboarding-label">模型</label>
+                            <input type="text" id="onboardingAiModel" class="onboarding-input"
+                                placeholder="gpt-4 / deepseek">
+                        </div>
+                    </div>
+                </div>
+
+                <button class="onboarding-btn" id="onboardingSaveBtn" style="margin-top: 12px;">完成并同步</button>
+                <div id="onboardingStatus" class="onboarding-status"></div>
+            </div>
+        </div>
+    </div>
+
     <script src="sidepanel.js"></script>
 </body>
 

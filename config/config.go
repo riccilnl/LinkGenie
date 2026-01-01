@@ -1,6 +1,7 @@
 package config
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
 	"strconv"
@@ -44,6 +45,49 @@ func Load() (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// LoadFromDB 从数据库加载配置并覆盖当前配置
+func (c *Config) LoadFromDB(dbAPI interface {
+	Query(query string, args ...interface{}) (*sql.Rows, error)
+}) error {
+	// 这里使用 interface 是为了避免循环引用, 因为 db 包引用了 config
+	// 实际上我们会传入 *sql.DB
+	rows, err := dbAPI.Query("SELECT key, value FROM system_configs")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var key, value string
+		if err := rows.Scan(&key, &value); err != nil {
+			continue
+		}
+
+		switch key {
+		case "API_TOKEN":
+			if value != "" {
+				c.APIToken = value
+			}
+		case "AI_API_KEY":
+			if value != "" {
+				c.AIAPIKey = value
+				c.AIEnabled = true // 如果设置了 Key，默认开启 AI
+			}
+		case "AI_ENDPOINT":
+			if value != "" {
+				c.AIEndpoint = value
+			}
+		case "AI_MODEL":
+			if value != "" {
+				c.AIModel = value
+			}
+		case "AI_ENABLED":
+			c.AIEnabled = value == "true" || value == "1"
+		}
+	}
+	return nil
 }
 
 // parseDBPath 解析数据库路径（兼容 sqlite:/// 前缀）
