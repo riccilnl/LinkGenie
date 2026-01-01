@@ -1,9 +1,10 @@
-package utils
+package Test
 
 import (
 	"testing"
 
 	"ai-bookmark-service/models"
+	"ai-bookmark-service/utils"
 )
 
 func TestNormalizeURL(t *testing.T) {
@@ -89,7 +90,7 @@ func TestNormalizeURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := NormalizeURL(tt.input)
+			result, err := utils.NormalizeURL(tt.input)
 
 			if tt.shouldError {
 				if err == nil {
@@ -197,7 +198,7 @@ func TestValidateBookmarkCreate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := ValidateBookmarkCreate(tt.bookmark)
+			err := utils.ValidateBookmarkCreate(tt.bookmark)
 
 			if tt.shouldError {
 				if err == nil {
