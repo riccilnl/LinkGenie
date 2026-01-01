@@ -311,3 +311,227 @@ button {
     background: rgba(10, 132, 255, 0.3);
     border: 1px solid rgba(10, 132, 255, 0.5);
 }
+
+/* 引导页面 (Onboarding) */
+.onboarding-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #000;
+    /* 纯黑背景 */
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    animation: fadeIn 0.5s ease;
+}
+
+.onboarding-overlay.dark {
+    background: radial-gradient(circle at 10% 20%, rgba(28, 28, 30, 0.98) 0%, rgba(44, 44, 46, 0.98) 90.1%);
+    color: #f5f5f7;
+}
+
+.onboarding-card {
+    background: #1c1c1e;
+    /* 深灰卡片 */
+    border: 1px solid #2c2c2e;
+    border-radius: 20px;
+    padding: 40px;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.onboarding-overlay.dark .onboarding-card {
+    background: rgba(44, 44, 46, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+}
+
+.onboarding-logo {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 24px;
+    background: #007aff;
+    /* 蓝色 Logo 背景 */
+    padding: 12px;
+    border-radius: 14px;
+}
+
+.onboarding-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    letter-spacing: -0.5px;
+}
+
+.onboarding-subtitle {
+    font-size: 14px;
+    color: #8e8e93;
+    margin-bottom: 32px;
+    line-height: 1.5;
+}
+
+.onboarding-overlay.dark .onboarding-subtitle {
+    color: #8e8e93;
+}
+
+.onboarding-form {
+    text-align: left;
+}
+
+.onboarding-input-group {
+    margin-bottom: 20px;
+}
+
+.onboarding-label {
+    display: block;
+    font-size: 12px;
+    color: #8e8e93;
+    margin-bottom: 8px;
+    margin-left: 4px;
+}
+
+.onboarding-overlay.dark .onboarding-label {
+    color: #a1a1a6;
+}
+
+.onboarding-input {
+    width: 100%;
+    padding: 12px 16px;
+    background: #2c2c2e;
+    border: 1px solid #3a3a3c;
+    border-radius: 10px;
+    font-size: 15px;
+    color: #fff;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.onboarding-overlay.dark .onboarding-input {
+    background: rgba(28, 28, 30, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.onboarding-input:focus {
+    border-color: #007aff;
+}
+
+.onboarding-btn {
+    width: 100%;
+    padding: 14px;
+    background: #0a84ff;
+    /* 蓝色按钮 */
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.onboarding-btn:hover {
+    opacity: 0.9;
+}
+
+.onboarding-btn.secondary {
+    background: transparent;
+    color: #2d4f4f;
+    border: 2px solid #2d4f4f;
+    box-shadow: none;
+    margin-top: 8px;
+}
+
+.onboarding-overlay.dark .onboarding-btn.secondary {
+    color: #f5f5f7;
+    border-color: #f5f5f7;
+}
+
+.onboarding-status {
+    margin-top: 16px;
+    font-size: 13px;
+    text-align: center;
+    min-height: 20px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Onboarding Section Table/Collapse */
+.onboarding-section {
+    background: #2c2c2e;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    overflow: hidden;
+    border: 1px solid #3a3a3c;
+}
+
+.onboarding-section-header {
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    background: #2c2c2e;
+    transition: background 0.2s;
+}
+
+.onboarding-section-header:hover {
+    background: #3a3a3c;
+}
+
+.onboarding-section-header .onboarding-label {
+    margin-bottom: 0;
+    color: #fff;
+    font-weight: 500;
+}
+
+.onboarding-section-content {
+    padding: 0 16px;
+    max-height: 0;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    background: #1c1c1e;
+}
+
+.onboarding-section-content.show {
+    padding: 16px;
+    max-height: 500px;
+    border-top: 1px solid #3a3a3c;
+}
+
+#aiToggleIcon {
+    font-size: 10px;
+    color: #8e8e93;
+    transition: transform 0.3s;
+}
+
+.onboarding-section-content.show~.onboarding-section-header #aiToggleIcon {
+    transform: rotate(180deg);
+}

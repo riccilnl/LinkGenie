@@ -73,47 +73,16 @@ echo ""
 
 # 4. 更新 .gitignore (公开版)
 echo -e "${YELLOW}📝 更新 .gitignore...${NC}"
-cat > .gitignore << 'EOF'
-# Environment
-.env
-.env.local
-
-# Database
-*.db
-*.db-journal
-*.db-shm
-*.db-wal
-
-# Logs
-*.log
-
-# Build artifacts
-*.exe
-*.dll
-*.so
-*.dylib
-dist/
-build/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Go
-go.work
-
-# Temporary
-*.tmp
-*.bak
-*~
-EOF
-echo -e "${GREEN}✓ 已更新 .gitignore (公开版)${NC}"
+if [ -f ".gitignore.public" ]; then
+    cp .gitignore.public .gitignore
+    echo -e "${GREEN}✓ 已应用公开版 .gitignore${NC}"
+else
+    echo -e "${RED}❌ 错误: .gitignore.public 文件不存在${NC}"
+    echo "请先在私有仓库根目录创建 .gitignore.public"
+    git checkout main
+    git branch -D "$TEMP_BRANCH"
+    exit 1
+fi
 echo ""
 
 # 5. 更新 go.mod 中的模块名

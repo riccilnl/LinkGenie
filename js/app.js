@@ -1,4 +1,151 @@
-// 保存 API 配置
+// ========== 系统状态检查与引导 (Onboarding) ==========
+
+async function checkSystemStatus() {
+    try {
+        const response = await fetch(`${API_BASE}/api/system/status`, { headers });
+        if (!response.ok) {
+            if (response.status === 401) {
+                const isDefault = (API_TOKEN === 'your-secret-token-change-me' || !API_TOKEN);
+                const msg = isDefault
+                    ? '欢迎使用 LinkGenie，请先设置您的访问密钥。'
+                    : '访问认证已失效，请重新输入正确的 Token 密钥以接入。';
+                showOnboarding(msg);
+                return;
+            }
+            throw new Error('无法连接到服务器');
+        }
+        const data = await response.json();
+
+        // 如果数据库没有初始化(无书签)，显示引导页
+        if (!data.initialized) {
+            showOnboarding('欢迎使用！您的数据库还是空的，让我们开启第一次收藏。');
+        } else {
+            // 正常加载
+            loadBookmarks();
+            loadFolders();
+        }
+    } catch (error) {
+        console.error('系统状态检查失败:', error);
+        showOnboarding('无法连接到后端服务器，请检查地址是否正确。');
+    }
+}
+
+function showOnboarding(message) {
+    const overlay = document.getElementById('onboardingOverlay');
+    if (overlay) {
+        overlay.style.display = 'flex';
+        const status = document.getElementById('onboardingStatus');
+        if (status && message) {
+            status.textContent = message;
+            status.style.color = '#8e8e93';
+        }
+    }
+
+    // 自动填充当前的连接配置
+    const apiBaseInput = document.getElementById('onboardingApiBase');
+    const apiTokenInput = document.getElementById('onboardingApiToken');
+    if (apiBaseInput) apiBaseInput.value = API_BASE || '';
+    if (apiTokenInput) apiTokenInput.value = (API_TOKEN === 'your-secret-token-change-me') ? '' : API_TOKEN;
+
+    // 获取并填充 AI 配置 (仅用于回填已有的配置，报错不影响新用户填写)
+    fetch(`${API_BASE}/api/system/config`, { headers }).then(r => {
+        if (!r.ok) return {}; // 报错直接返回空
+        return r.json();
+    }).then(config => {
+        if (config.ai_endpoint) document.getElementById('onboardingAiEndpoint').value = config.ai_endpoint;
+        if (config.ai_model) document.getElementById('onboardingAiModel').value = config.ai_model;
+    }).catch(() => { });
+}
+
+function toggleOnboardingAi() {
+    const content = document.getElementById('onboardingAiFields');
+    const icon = document.getElementById('aiToggleIcon');
+    content.classList.toggle('show');
+    if (content.classList.contains('show')) {
+        icon.style.transform = 'rotate(180deg)';
+    } else {
+        icon.style.transform = 'rotate(0deg)';
+    }
+}
+
+async function testAndSaveOnboarding() {
+    const baseInput = document.getElementById('onboardingApiBase');
+    const tokenInput = document.getElementById('onboardingApiToken');
+    const aiKeyInput = document.getElementById('onboardingAiKey');
+    const aiEndpointInput = document.getElementById('onboardingAiEndpoint');
+    const aiModelInput = document.getElementById('onboardingAiModel');
+    const status = document.getElementById('onboardingStatus');
+
+    let base = baseInput.value.trim();
+    if (base && !base.startsWith('http')) {
+        base = 'http://' + base;
+        baseInput.value = base; // 同步回输入框让用户看见
+    }
+    const token = tokenInput.value.trim();
+
+    if (!base || !token) {
+        status.textContent = '❌ 请填写服务器地址和 Token';
+        status.style.color = '#ff453a';
+        return;
+    }
+
+    status.textContent = '⏳ 正在同步配置...';
+    status.style.color = '#0a84ff';
+
+    try {
+        const testHeaders = {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        };
+
+        // 1. 先尝试同步 AI 配置到后端 (热重载)
+        const aiConfig = {};
+        if (aiKeyInput.value.trim()) aiConfig['AI_API_KEY'] = aiKeyInput.value.trim();
+        if (aiEndpointInput.value.trim()) aiConfig['AI_ENDPOINT'] = aiEndpointInput.value.trim();
+        if (aiModelInput.value.trim()) aiConfig['AI_MODEL'] = aiModelInput.value.trim();
+        aiConfig['API_TOKEN'] = token;
+
+        const configResp = await fetch(`${base}/api/system/config`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }, // 此时可能还没 Token，后端已在中间件中放行此路径
+            body: JSON.stringify(aiConfig)
+        });
+
+        if (!configResp.ok) throw new Error('同步到服务器失败');
+
+        // 2. 验证状态
+        const response = await fetch(`${base}/api/system/status`, { headers: testHeaders });
+
+        if (response.ok) {
+            // 保存到本地
+            localStorage.setItem('api_base', base);
+            localStorage.setItem('api_token', token);
+
+            // 更新全局
+            API_BASE = base;
+            API_TOKEN = token;
+            headers = testHeaders;
+
+            status.textContent = '✅ 配置已注入并成功连接！';
+            status.style.color = '#34c759';
+
+            setTimeout(() => {
+                document.getElementById('onboardingOverlay').style.display = 'none';
+                loadBookmarks();
+                loadFolders();
+            }, 1000);
+        } else {
+            status.textContent = '❌ 连接验证失败';
+            status.style.color = '#ff453a';
+        }
+    } catch (error) {
+        console.error('Onboarding failed:', error);
+        status.textContent = '❌ 服务器同步失败，请检查地址';
+        status.style.color = '#ff453a';
+    }
+}
+
+// 保存 API 配置 (原本的设置面板函数)
 function saveApiConfig() {
     const base = document.getElementById('apiBaseInput').value.trim();
     const token = document.getElementById('apiTokenInput').value.trim();
@@ -1472,9 +1619,8 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// 初始加载
-loadBookmarks();
-loadFolders();
+// 初始系统检查
+checkSystemStatus();
 
 // 绑定书签表单提交事件
 const bookmarkForm = document.getElementById('bookmarkForm');

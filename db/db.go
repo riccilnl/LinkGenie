@@ -114,6 +114,12 @@ func Init(dbPath string) error {
 		FOREIGN KEY (workflow_id) REFERENCES workflows(id) ON DELETE CASCADE
 	);
 
+	CREATE TABLE IF NOT EXISTS system_configs (
+		key TEXT PRIMARY KEY,
+		value TEXT NOT NULL,
+		date_modified DATETIME DEFAULT CURRENT_TIMESTAMP
+	);
+
 	CREATE INDEX IF NOT EXISTS idx_bookmarks_url ON bookmarks(url);
 	CREATE INDEX IF NOT EXISTS idx_bookmarks_date_added ON bookmarks(date_added DESC);
 	CREATE INDEX IF NOT EXISTS idx_bookmarks_is_favorite ON bookmarks(is_favorite);

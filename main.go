@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -56,6 +57,11 @@ func main() {
 	}
 	defer db.Close()
 
+	// 加载动态配置
+	if err := cfg.LoadFromDB(db.DB); err != nil {
+		log.Printf("⚠️ 从数据库加载动态配置失败: %v", err)
+	}
+
 	// 3. 初始化仓库
 	bookmarkRepo = db.NewBookmarkRepository()
 	tagRepo = db.NewTagRepository()
@@ -105,6 +111,72 @@ func main() {
 
 	// MCP HTTP 端点 - 使用 StreamableHTTPServer
 	mux.Handle("/mcp/", http.StripPrefix("/mcp", httpServer))
+
+	// 系统状态端点 (用于引导页)
+	mux.HandleFunc("/api/system/status", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		dbStatus := "connected"
+		bookmarkCount, err := bookmarkRepo.Count(nil)
+		if err != nil {
+			dbStatus = "error"
+		}
+
+		status := map[string]interface{}{
+			"status":          "ok",
+			"database":        dbStatus,
+			"bookmarks_count": bookmarkCount,
+			"ai_enabled":      cfg.AIEnabled,
+			"initialized":     bookmarkCount > 0,
+		}
+
+		json.NewEncoder(w).Encode(status)
+	})
+
+	// 系统配置端点 (支持热重载)
+	mux.HandleFunc("/api/system/config", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			w.Header().Set("Content-Type", "application/json")
+			aiKeySet := cfg.AIAPIKey != ""
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"ai_enabled":     cfg.AIEnabled,
+				"ai_endpoint":    cfg.AIEndpoint,
+				"ai_model":       cfg.AIModel,
+				"ai_api_key_set": aiKeySet,
+			})
+			return
+		}
+
+		if r.Method == http.MethodPost {
+			var newConfig map[string]string
+			if err := json.NewDecoder(r.Body).Decode(&newConfig); err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			// 持久化到数据库
+			for k, v := range newConfig {
+				_, err := db.DB.Exec("INSERT OR REPLACE INTO system_configs (key, value) VALUES (?, ?)", k, v)
+				if err != nil {
+					log.Printf("❌ 无法保存配置 %s: %v", k, err)
+				}
+			}
+
+			// 内存重载
+			if err := cfg.LoadFromDB(db.DB); err != nil {
+				log.Printf("⚠️ 内存重载失败: %v", err)
+			}
+
+			// 刷新 AI 服务
+			aiService = services.NewAIService(cfg, scraperService)
+			log.Printf("✅ 系统配置已更新并热重载")
+
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+			return
+		}
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	})
 
 	// 健康检查端点(不需要认证)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -242,9 +314,9 @@ func main() {
 
 	// 9. 应用中间件
 	handler := api.LoggingMiddleware(mux)
-	handler = api.CORSMiddleware(handler)
-	handler = api.AuthMiddleware(cfg.APIToken)(handler)
+	handler = api.AuthMiddleware(func() string { return cfg.APIToken })(handler)
 	handler = api.RateLimitMiddleware(rateLimiter)(handler)
+	handler = api.CORSMiddleware(handler) // CORS 必须在最外层
 	handler = api.RecoveryMiddleware(handler)
 
 	// 10. 启动服务器
@@ -340,26 +412,125 @@ func listBookmarks(w http.ResponseWriter, r *http.Request) {
 // createBookmark 创建书签
 func createBookmark(w http.ResponseWriter, r *http.Request) {
 	var bm models.BookmarkCreate
-	if err := json.NewDecoder(r.Body).Decode(&bm); err != nil {
-		http.Error(w, "无效的请求数据", http.StatusBadRequest)
-		return
+	contentType := r.Header.Get("Content-Type")
+
+	if strings.Contains(contentType, "multipart/form-data") || strings.Contains(contentType, "application/x-www-form-urlencoded") {
+		// 1. 处理表单提交 (Linkdy 模式)
+		if err := r.ParseMultipartForm(32 << 20); err != nil {
+			log.Printf("❌ 解析表单失败: %v", err)
+			http.Error(w, "无效的表单数据", http.StatusBadRequest)
+			return
+		}
+
+		bm.URL = r.FormValue("url")
+		bm.Title = r.FormValue("title")
+		bm.Description = r.FormValue("description")
+		bm.Notes = r.FormValue("notes")
+		bm.Unread = r.FormValue("unread") == "true" || r.FormValue("unread") == "1"
+		bm.Shared = r.FormValue("shared") == "true" || r.FormValue("shared") == "1"
+		bm.IsArchived = r.FormValue("is_archived") == "true" || r.FormValue("is_archived") == "1"
+		bm.IsFavorite = r.FormValue("is_favorite") == "true" || r.FormValue("is_favorite") == "1"
+
+		// 处理标签 (Linkdy 发送逗号分隔字符串)
+		tagNames := r.FormValue("tag_names")
+		if tagNames == "" {
+			tagNames = r.FormValue("tags")
+		}
+		if tagNames != "" {
+			parts := strings.Split(tagNames, ",")
+			for _, p := range parts {
+				p = strings.TrimSpace(p)
+				if p != "" {
+					bm.TagNames = append(bm.TagNames, p)
+				}
+			}
+		}
+	} else {
+		// 2. 处理 JSON 提交 (标准模式)
+		var raw map[string]interface{}
+		bodyBytes, _ := io.ReadAll(r.Body)
+		if err := json.Unmarshal(bodyBytes, &raw); err != nil {
+			log.Printf("❌ JSON解析失败: %v, Body: %s", err, string(bodyBytes))
+			http.Error(w, "无效的JSON数据", http.StatusBadRequest)
+			return
+		}
+
+		if v, ok := raw["url"].(string); ok {
+			bm.URL = v
+		}
+		if v, ok := raw["title"].(string); ok {
+			bm.Title = v
+		}
+		if v, ok := raw["description"].(string); ok {
+			bm.Description = v
+		}
+		if v, ok := raw["notes"].(string); ok {
+			bm.Notes = v
+		}
+		if v, ok := raw["is_favorite"].(bool); ok {
+			bm.IsFavorite = v
+		}
+		if v, ok := raw["unread"].(bool); ok {
+			bm.Unread = v
+		}
+		if v, ok := raw["shared"].(bool); ok {
+			bm.Shared = v
+		}
+		if v, ok := raw["is_archived"].(bool); ok {
+			bm.IsArchived = v
+		}
+
+		if tags, ok := raw["tag_names"].([]interface{}); ok {
+			for _, t := range tags {
+				if ts, ok := t.(string); ok {
+					bm.TagNames = append(bm.TagNames, ts)
+				}
+			}
+		} else if tagStr, ok := raw["tag_names"].(string); ok {
+			parts := strings.Split(tagStr, ",")
+			for _, p := range parts {
+				p = strings.TrimSpace(p)
+				if p != "" {
+					bm.TagNames = append(bm.TagNames, p)
+				}
+			}
+		}
+		if tags, ok := raw["tags"].([]interface{}); ok {
+			for _, t := range tags {
+				if ts, ok := t.(string); ok {
+					bm.TagNames = append(bm.TagNames, ts)
+				}
+			}
+		}
 	}
 
-	// 验证输入
+	// 映射归档到收藏
+	if bm.IsArchived {
+		bm.IsFavorite = true
+	}
+
+	// 自动截断
+	if len(bm.Title) > 200 {
+		bm.Title = bm.Title[:197] + "..."
+	}
+	if len(bm.Description) > 1000 {
+		bm.Description = bm.Description[:997] + "..."
+	}
+
+	// 验证并创建
 	if err := utils.ValidateBookmarkCreate(&bm); err != nil {
+		log.Printf("⚠️ 验证失败: %v", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// 创建书签
 	created, err := bookmarkRepo.Create(&bm)
 	if err != nil {
 		log.Printf("❌ 创建书签失败: %v", err)
-		http.Error(w, "创建失败", http.StatusInternalServerError)
+		http.Error(w, "创建失败: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// 异步AI增强
 	if cfg.EnableAsyncAI {
 		aiWorkerPool.Submit(created.ID)
 	}
