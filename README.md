@@ -4,6 +4,8 @@
 [![Docker](https://img.shields.io/badge/Docker-Supported-2496ED?style=flat-square&logo=docker)](https://www.docker.com/)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
+**中文** | [English](./README_EN.md)
+
 ### 作为一个“收藏狂魔”，你是否也常被这些问题困扰？
 - ❌ **信息黑洞**：随手存的网页没有标题和描述，过两天就忘了它是干嘛的。
 - ❌ **整理地狱**：手动打标签太累，书签库最后乱成一团，成了“收藏从未停止，查找从未开始”。
