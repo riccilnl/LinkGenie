@@ -61,8 +61,8 @@ echo "  ✓ 已删除: Go 测试文件 (2个)"
 # 删除部署和配置文件
 rm -f deploy.sh
 rm -f mcp/claude_desktop_config.json
-rm -f Dockerfile.fast
-echo "  ✓ 已删除: 部署脚本和敏感配置 (3个)"
+rm -f Dockerfile.fast Dockerfile.backup Dockerfile.optimized
+echo "  ✓ 已删除: 部署脚本和冗余 Dockerfile (4个)"
 
 # 删除运行时文件 (以防万一)
 rm -f bookmarks.db bookmarks.exe .env
