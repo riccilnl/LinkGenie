@@ -70,9 +70,6 @@ function showOnboarding(message) {
 async function handleOnboardingSave() {
     const baseInput = document.getElementById('onboardingApiBase');
     const tokenInput = document.getElementById('onboardingApiToken');
-    const aiKeyInput = document.getElementById('onboardingAiKey');
-    const aiEndpointInput = document.getElementById('onboardingAiEndpoint');
-    const aiModelInput = document.getElementById('onboardingAiModel');
     const status = document.getElementById('onboardingStatus');
 
     let base = baseInput.value.trim().replace(/\/$/, "");
@@ -88,26 +85,11 @@ async function handleOnboardingSave() {
         return;
     }
 
-    status.textContent = '⏳ 正在同步配置...';
+    status.textContent = '⏳ 正在验证连接...';
     status.style.color = '#007AFF';
 
     try {
-        // 1. 同步 AI 配置到后端
-        const aiConfig = {};
-        if (aiKeyInput.value.trim()) aiConfig['AI_API_KEY'] = aiKeyInput.value.trim();
-        if (aiEndpointInput.value.trim()) aiConfig['AI_ENDPOINT'] = aiEndpointInput.value.trim();
-        if (aiModelInput.value.trim()) aiConfig['AI_MODEL'] = aiModelInput.value.trim();
-        aiConfig['API_TOKEN'] = token;
-
-        const configResp = await fetch(`${base}/api/system/config`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(aiConfig)
-        });
-
-        if (!configResp.ok) throw new Error('同步到服务器失败');
-
-        // 2. 验证状态
+        // 验证状态
         const response = await fetch(`${base}/api/system/status`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -123,7 +105,7 @@ async function handleOnboardingSave() {
             API_BASE = base;
             API_TOKEN = token;
 
-            status.textContent = '✅ 配置成功并已热加载！';
+            status.textContent = '✅ 连接成功！';
             status.style.color = '#10b981';
 
             setTimeout(() => {
@@ -137,19 +119,8 @@ async function handleOnboardingSave() {
         }
     } catch (error) {
         console.error('Onboarding failed:', error);
-        status.textContent = '❌ 同步失败，请检查网络或地址';
+        status.textContent = '❌ 连接失败，请检查网络或地址';
         status.style.color = '#ff453a';
-    }
-}
-
-function toggleOnboardingAi() {
-    const content = document.getElementById('onboardingAiFields');
-    const icon = document.getElementById('aiToggleIcon');
-    content.classList.toggle('show');
-    if (content.classList.contains('show')) {
-        icon.style.transform = 'rotate(180deg)';
-    } else {
-        icon.style.transform = 'rotate(0deg)';
     }
 }
 
@@ -162,12 +133,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const onboardingBtn = document.getElementById('onboardingSaveBtn');
     if (onboardingBtn) {
         onboardingBtn.addEventListener('click', handleOnboardingSave);
-    }
-
-    // 绑定 AI 配置切换
-    const aiHeader = document.getElementById('onboardingAiHeader');
-    if (aiHeader) {
-        aiHeader.addEventListener('click', toggleOnboardingAi);
     }
 
     checkSystemStatus();
@@ -238,25 +203,27 @@ function setupEventListeners() {
     const searchInput = document.getElementById('searchInput');
     const searchClear = document.getElementById('searchClear');
 
-    searchInput.addEventListener('input', (e) => {
-        const value = e.target.value;
+    if (searchInput && searchClear) {
+        searchInput.addEventListener('input', (e) => {
+            const value = e.target.value;
 
-        // Show/hide clear button
-        if (value) {
-            searchClear.style.display = 'flex';
-        } else {
+            // Show/hide clear button
+            if (value) {
+                searchClear.style.display = 'flex';
+            } else {
+                searchClear.style.display = 'none';
+            }
+
+            handleSearch(value);
+        });
+
+        // Clear search button
+        searchClear.addEventListener('click', () => {
+            searchInput.value = '';
             searchClear.style.display = 'none';
-        }
-
-        handleSearch(value);
-    });
-
-    // Clear search button
-    searchClear.addEventListener('click', () => {
-        searchInput.value = '';
-        searchClear.style.display = 'none';
-        loadBookmarksFromAPI(); // Reset to all bookmarks
-    });
+            loadBookmarksFromAPI(); // Reset to all bookmarks
+        });
+    }
 
     // Folder popup close button
     const folderPopupClose = document.getElementById('folderPopupClose');
@@ -356,6 +323,10 @@ function showSettingsInContentArea() {
     const bookmarkList = document.getElementById('bookmarkList');
     const template = document.getElementById('settingsTemplate');
 
+    if (!bookmarkList || !template) {
+        return;
+    }
+
     // Clone template content
     const settingsContent = template.content.cloneNode(true);
 
@@ -407,7 +378,7 @@ function setupSettingsEventListeners() {
     }
 
     // Import file button
-    const importBtn = document.querySelector('.settings-btn-secondary');
+    const importBtn = document.getElementById('importBtn');
     if (importBtn) {
         importBtn.addEventListener('click', () => {
             document.getElementById('importFile').click();
@@ -421,14 +392,14 @@ function setupSettingsEventListeners() {
     }
 
     // Export button
-    const exportBtns = document.querySelectorAll('.settings-btn-secondary');
-    if (exportBtns.length > 1) {
-        exportBtns[1].addEventListener('click', exportBookmarks);
+    const exportBtn = document.getElementById('exportBtn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', exportBookmarks);
     }
 }
 
 // Load API config into form
-function loadApiConfig() {
+async function loadApiConfig() {
     const apiBaseInput = document.getElementById('apiBaseInput');
     const apiTokenInput = document.getElementById('apiTokenInput');
 
@@ -436,12 +407,17 @@ function loadApiConfig() {
         apiBaseInput.value = API_BASE;
         apiTokenInput.value = API_TOKEN;
     }
+
+    await loadAiConfigFromServer();
 }
 
 // Save API config
 async function saveApiConfig() {
     const base = document.getElementById('apiBaseInput').value.trim();
     const token = document.getElementById('apiTokenInput').value.trim();
+    const aiKeyInput = document.getElementById('aiKeyInput');
+    const aiEndpointInput = document.getElementById('aiEndpointInput');
+    const aiModelInput = document.getElementById('aiModelInput');
 
     if (!base || !token) {
         alert('请填写完整的 API 配置');
@@ -455,16 +431,85 @@ async function saveApiConfig() {
     API_BASE = base;
     API_TOKEN = token;
 
+    // Sync AI config to server (best effort)
+    let syncOk = true;
+    try {
+        const aiConfig = {
+            API_TOKEN: token
+        };
+
+        if (aiKeyInput && aiKeyInput.value.trim()) {
+            aiConfig['AI_API_KEY'] = aiKeyInput.value.trim();
+        }
+        if (aiEndpointInput && aiEndpointInput.value.trim()) {
+            aiConfig['AI_ENDPOINT'] = aiEndpointInput.value.trim();
+        }
+        if (aiModelInput && aiModelInput.value.trim()) {
+            aiConfig['AI_MODEL'] = aiModelInput.value.trim();
+        }
+
+        const configResp = await fetch(`${base}/api/system/config`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(aiConfig)
+        });
+
+        if (!configResp.ok) {
+            syncOk = false;
+        }
+    } catch (error) {
+        syncOk = false;
+    }
+
     // Show success message
     const status = document.getElementById('apiConfigStatus');
-    status.style.display = 'inline';
+    if (status) {
+        status.textContent = syncOk ? '✓ 已保存' : '⚠️ 本地已保存，服务器同步失败';
+        status.style.color = syncOk ? '#10b981' : '#ef4444';
+        status.style.display = 'inline';
+    }
     setTimeout(() => {
-        status.style.display = 'none';
+        if (status) {
+            status.style.display = 'none';
+        }
     }, 2000);
 
     // Reload bookmarks with new config
     console.log('🔄 使用新配置重新加载书签...');
     loadBookmarksFromAPI();
+}
+
+async function loadAiConfigFromServer() {
+    const aiKeyInput = document.getElementById('aiKeyInput');
+    const aiEndpointInput = document.getElementById('aiEndpointInput');
+    const aiModelInput = document.getElementById('aiModelInput');
+
+    if (!aiKeyInput && !aiEndpointInput && !aiModelInput) {
+        return;
+    }
+
+    if (!API_BASE) {
+        if (aiKeyInput) aiKeyInput.value = '';
+        if (aiEndpointInput) aiEndpointInput.value = '';
+        if (aiModelInput) aiModelInput.value = '';
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/api/system/config`);
+        if (!response.ok) {
+            throw new Error('读取 AI 配置失败');
+        }
+
+        const data = await response.json();
+        if (aiKeyInput) aiKeyInput.value = '';
+        if (aiEndpointInput) aiEndpointInput.value = data.ai_endpoint || '';
+        if (aiModelInput) aiModelInput.value = data.ai_model || '';
+    } catch (error) {
+        if (aiKeyInput) aiKeyInput.value = '';
+        if (aiEndpointInput) aiEndpointInput.value = '';
+        if (aiModelInput) aiModelInput.value = '';
+    }
 }
 
 // Handle import file

@@ -3,9 +3,25 @@
     position: fixed;
     right: 20px;
     top: 50%;
-    transform: translateY(-50%);
     z-index: 999999;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    user-select: none;
+    cursor: grab;
+    transition: transform 0.2s ease;
+    will-change: transform, top, left;
+}
+
+.bookmark-floating-container.dragging {
+    transition: none;
+    cursor: grabbing;
+}
+
+.bookmark-floating-container.dock-left.collapsed {
+    transform: translateX(-70%);
+}
+
+.bookmark-floating-container.dock-right.collapsed {
+    transform: translateX(50%);
 }
 
 .bookmark-floating-btn {

@@ -123,6 +123,19 @@
 
             <div class="settings-divider"></div>
 
+            <!-- AI 配置 -->
+            <div class="form-group">
+                <label class="form-label">AI 配置</label>
+                <p style="color: #6b7280; font-size: 12px; margin-bottom: 8px;">从服务器读取，无法读取时保持为空</p>
+                <input type="password" class="form-input" id="aiKeyInput" placeholder="AI API Key"
+                    style="margin-bottom: 8px;">
+                <input type="text" class="form-input" id="aiEndpointInput" placeholder="AI Endpoint"
+                    style="margin-bottom: 8px;">
+                <input type="text" class="form-input" id="aiModelInput" placeholder="AI Model">
+            </div>
+
+            <div class="settings-divider"></div>
+
             <!-- 主题设置 -->
             <div class="form-group">
                 <label class="form-label">主题设置</label>
@@ -154,7 +167,7 @@
                 <p style="color: #6b7280; font-size: 12px; margin-bottom: 8px;">支持Netscape HTML格式(Chrome/Firefox导出的书签)
                 </p>
                 <input type="file" accept=".html,.htm" id="importFile" style="display: none;">
-                <button class="settings-btn-secondary">选择文件</button>
+                <button class="settings-btn-secondary" id="importBtn">选择文件</button>
                 <span id="importFileName" style="margin-left: 12px; color: #6b7280; font-size: 13px;"></span>
             </div>
 
@@ -170,7 +183,7 @@
             <div class="form-group" style="margin-top: 24px;">
                 <label class="form-label">导出书签</label>
                 <p style="color: #6b7280; font-size: 12px; margin-bottom: 8px;">导出为Netscape HTML格式</p>
-                <button class="settings-btn-secondary">导出所有书签</button>
+                <button class="settings-btn-secondary" id="exportBtn">导出所有书签</button>
             </div>
         </div>
     </template>
@@ -212,31 +225,7 @@
                     <input type="password" id="onboardingApiToken" class="onboarding-input" placeholder="访问服务器的密钥">
                 </div>
 
-                <!-- AI 配置 (折叠) -->
-                <div class="onboarding-section">
-                    <div class="onboarding-section-header" id="onboardingAiHeader">
-                        <span class="onboarding-label">AI 增强配置 (可选)</span>
-                        <span id="aiToggleIcon">▼</span>
-                    </div>
-                    <div id="onboardingAiFields" class="onboarding-section-content">
-                        <div class="onboarding-input-group">
-                            <label class="onboarding-label">API Key</label>
-                            <input type="password" id="onboardingAiKey" class="onboarding-input"
-                                placeholder="OpenAI/DeepSeek Key">
-                        </div>
-                        <div class="onboarding-input-group">
-                            <label class="onboarding-label">API 地址</label>
-                            <input type="text" id="onboardingAiEndpoint" class="onboarding-input" placeholder="代理地址">
-                        </div>
-                        <div class="onboarding-input-group">
-                            <label class="onboarding-label">模型</label>
-                            <input type="text" id="onboardingAiModel" class="onboarding-input"
-                                placeholder="gpt-4 / deepseek">
-                        </div>
-                    </div>
-                </div>
-
-                <button class="onboarding-btn" id="onboardingSaveBtn" style="margin-top: 12px;">完成并同步</button>
+                <button class="onboarding-btn" id="onboardingSaveBtn" style="margin-top: 12px;">完成并连接</button>
                 <div id="onboardingStatus" class="onboarding-status"></div>
             </div>
         </div>
