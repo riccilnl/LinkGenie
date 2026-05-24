@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	neturl "net/url"
 	"strings"
@@ -13,6 +14,67 @@ import (
 
 	"golang.org/x/net/html"
 )
+
+var privateIPPrefixes = []struct {
+	network *net.IPNet
+}{
+	{network: mustParseCIDR("10.0.0.0/8")},
+	{network: mustParseCIDR("172.16.0.0/12")},
+	{network: mustParseCIDR("192.168.0.0/16")},
+	{network: mustParseCIDR("169.254.0.0/16")},
+	{network: mustParseCIDR("127.0.0.0/8")},
+	{network: mustParseCIDR("0.0.0.0/32")},
+	{network: mustParseCIDR("::1/128")},
+	{network: mustParseCIDR("fc00::/7")},
+	{network: mustParseCIDR("fe80::/10")},
+}
+
+func mustParseCIDR(s string) *net.IPNet {
+	_, n, err := net.ParseCIDR(s)
+	if err != nil {
+		panic("无效 CIDR: " + s)
+	}
+	return n
+}
+
+var privateHostnames = map[string]bool{
+	"localhost":       true,
+	"localhost.localdomain": true,
+	"localhost6":      true,
+	"localhost6.localdomain6": true,
+}
+
+func isPrivateTarget(host string) bool {
+	host = strings.ToLower(strings.TrimSpace(host))
+	if privateHostnames[host] {
+		return true
+	}
+
+	ip := net.ParseIP(host)
+	if ip != nil {
+		return isPrivateIP(ip)
+	}
+
+	ips, err := net.LookupHost(host)
+	if err != nil {
+		return false
+	}
+	for _, ipStr := range ips {
+		if ip := net.ParseIP(ipStr); ip != nil && isPrivateIP(ip) {
+			return true
+		}
+	}
+	return false
+}
+
+func isPrivateIP(ip net.IP) bool {
+	for _, p := range privateIPPrefixes {
+		if p.network.Contains(ip) {
+			return true
+		}
+	}
+	return false
+}
 
 // ScraperService 网页抓取服务
 type ScraperService struct {
@@ -46,6 +108,17 @@ func (s *ScraperService) httpClient() *http.Client {
 
 // ScrapeWebPage 抓取网页元数据
 func (s *ScraperService) ScrapeWebPage(url string) (*models.PageMetadata, error) {
+	parsedURL, err := neturl.Parse(url)
+	if err != nil {
+		return nil, fmt.Errorf("无效 URL: %w", err)
+	}
+	if parsedURL.Hostname() == "" {
+		return nil, fmt.Errorf("URL 缺少主机名")
+	}
+	if isPrivateTarget(parsedURL.Hostname()) {
+		return nil, fmt.Errorf("拒绝访问内网或回环地址: %s", parsedURL.Hostname())
+	}
+
 	// 创建请求
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

@@ -187,9 +187,10 @@ func parsePatchBookmarkInput(r *http.Request) (services.PatchBookmarkInput, erro
 }
 
 func readRawJSONMap(r *http.Request) (map[string]json.RawMessage, error) {
+	r.Body = http.MaxBytesReader(nil, r.Body, 1<<20) // 限制 1MB
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
-		return nil, errors.New("读取请求失败")
+		return nil, errors.New("请求体过大或读取失败")
 	}
 
 	var raw map[string]json.RawMessage
