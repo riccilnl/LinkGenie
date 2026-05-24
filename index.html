@@ -161,6 +161,37 @@
 
             <div style="border-top: 1px solid #2c2c2e; margin: 20px 0;"></div>
 
+            <!-- AI 配置 -->
+            <div class="form-group">
+                <label class="form-label">AI 增强</label>
+                <p id="aiConfigSummary" style="color: #8e8e93; font-size: 12px; margin-bottom: 8px;">读取当前 AI 配置中...</p>
+
+                <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: #f5f5f7;">
+                    <input type="checkbox" id="aiEnabledInput">
+                    <span>启用 AI 增强</span>
+                </label>
+
+                <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: #f5f5f7;">
+                    <input type="checkbox" id="enableAsyncAiInput">
+                    <span>启用异步 AI 队列</span>
+                </label>
+
+                <input type="password" class="form-input" id="aiApiKeyInput" placeholder="AI API Key（留空表示保留现有值）"
+                    style="margin-bottom: 8px;">
+                <input type="text" class="form-input" id="aiEndpointInput" placeholder="https://api.openai.com/v1/chat/completions"
+                    style="margin-bottom: 8px;">
+                <input type="text" class="form-input" id="aiModelInput" placeholder="gpt-4o-mini"
+                    style="margin-bottom: 8px;">
+                <input type="number" min="1" class="form-input" id="aiWorkerCountInput" placeholder="2">
+
+                <div style="display: flex; align-items: center; gap: 12px; margin-top: 8px;">
+                    <button class="modal-btn secondary" onclick="saveAiConfig()">保存 AI 配置</button>
+                    <span id="aiConfigStatus" style="color: #34c759; font-size: 13px; display: none;">✓ 已保存</span>
+                </div>
+            </div>
+
+            <div style="border-top: 1px solid #2c2c2e; margin: 20px 0;"></div>
+
             <!-- 导入书签 -->
             <div class="form-group">
                 <label class="form-label">导入书签</label>
@@ -394,6 +425,8 @@
     <!-- JavaScript 模块 -->
     <script src="js/config.js"></script>
     <script src="js/ui.js"></script>
+    <script src="js/store.js"></script>
+    <script src="js/api-client.js"></script>
     <script src="js/app.js"></script>
 </body>
 

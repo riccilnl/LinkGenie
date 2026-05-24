@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"ai-bookmark-service/db"
-	"ai-bookmark-service/models"
-	"ai-bookmark-service/services"
+	"github.com/riccilnl/LinkGenie/db"
+	"github.com/riccilnl/LinkGenie/models"
+	"github.com/riccilnl/LinkGenie/services"
 
 	"github.com/mark3labs/mcp-go/server"
 )
@@ -68,11 +68,11 @@ func formatBookmarks(bookmarks []*models.Bookmark, title string) string {
 	for _, bookmark := range bookmarks {
 		result.WriteString(fmt.Sprintf("\n## %s\n", bookmark.Title))
 		result.WriteString(fmt.Sprintf("- **URL**: %s\n", bookmark.URL))
-		
+
 		if bookmark.Description != "" {
 			result.WriteString(fmt.Sprintf("- **描述**: %s\n", bookmark.Description))
 		}
-		
+
 		if len(bookmark.TagNames) > 0 {
 			result.WriteString(fmt.Sprintf("- **标签**: %s\n", strings.Join(bookmark.TagNames, ", ")))
 		}
@@ -109,7 +109,7 @@ func formatTags(tags []*models.Tag) string {
 	var result strings.Builder
 	result.WriteString("# 标签列表\n\n")
 	result.WriteString(fmt.Sprintf("共 %d 个标签\n\n", len(tags)))
-	
+
 	// Extract tag names
 	tagNames := make([]string, len(tags))
 	for i, tag := range tags {

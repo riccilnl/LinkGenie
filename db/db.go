@@ -14,8 +14,8 @@ var DB *sql.DB
 // Init 初始化数据库
 func Init(dbPath string) error {
 	var err error
-	// 使用 DSN 参数配置 WAL 模式和超时，确保连接池中的所有连接都生效
-	dsn := dbPath + "?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)"
+	// 使用 DSN 参数配置 WAL、超时和外键约束，确保连接池中的所有连接都生效
+	dsn := dbPath + "?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)"
 	DB, err = sql.Open("sqlite", dsn)
 	if err != nil {
 		return err

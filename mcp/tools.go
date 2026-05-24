@@ -149,15 +149,15 @@ func (s *MCPServer) handleFetchBookmarkContent(ctx context.Context, request mcp.
 	var result strings.Builder
 	result.WriteString(fmt.Sprintf("# %s\n\n", metadata.Title))
 	result.WriteString(fmt.Sprintf("**URL**: %s\n\n", url))
-	
+
 	if metadata.Description != "" {
 		result.WriteString(fmt.Sprintf("**描述**: %s\n\n", metadata.Description))
 	}
-	
+
 	if metadata.OGTitle != "" && metadata.OGTitle != metadata.Title {
 		result.WriteString(fmt.Sprintf("**Open Graph 標題**: %s\n\n", metadata.OGTitle))
 	}
-	
+
 	if metadata.OGDesc != "" && metadata.OGDesc != metadata.Description {
 		result.WriteString(fmt.Sprintf("**Open Graph 描述**: %s\n\n", metadata.OGDesc))
 	}

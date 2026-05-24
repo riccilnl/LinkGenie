@@ -8,7 +8,7 @@ import (
 // SanitizeHeaders 脱敏HTTP头（隐藏敏感信息）
 func SanitizeHeaders(headers http.Header) http.Header {
 	sanitized := headers.Clone()
-	
+
 	// 脱敏敏感字段
 	sensitiveKeys := []string{
 		"Authorization",
@@ -17,7 +17,7 @@ func SanitizeHeaders(headers http.Header) http.Header {
 		"Set-Cookie",
 		"Api-Key",
 	}
-	
+
 	for _, key := range sensitiveKeys {
 		if val := sanitized.Get(key); val != "" {
 			if len(val) > 8 {
@@ -28,7 +28,7 @@ func SanitizeHeaders(headers http.Header) http.Header {
 			}
 		}
 	}
-	
+
 	return sanitized
 }
 
@@ -47,14 +47,14 @@ func SanitizeAPIKey(apiKey string) string {
 func SanitizeURL(urlStr string) string {
 	// 如果URL包含token、key、password等敏感参数，进行脱敏
 	sensitiveParams := []string{"token", "key", "password", "secret", "api_key"}
-	
+
 	for _, param := range sensitiveParams {
 		if strings.Contains(strings.ToLower(urlStr), param+"=") {
 			// 简单替换，实际应该用URL解析
 			urlStr = strings.ReplaceAll(urlStr, param+"=", param+"=***")
 		}
 	}
-	
+
 	return urlStr
 }
 

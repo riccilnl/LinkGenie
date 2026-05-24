@@ -1,5 +1,6 @@
 # 多阶段构建 - 优化压缩版本 (Alpine + UPX)
-FROM golang:1.23-alpine AS builder
+ARG BASE_IMAGE_PREFIX=docker.io/library
+FROM ${BASE_IMAGE_PREFIX}/golang:1.23-alpine AS builder
 
 # 构建参数
 ARG BUILD_DATE
@@ -33,6 +34,7 @@ COPY services/ ./services/
 COPY utils/ ./utils/
 COPY config/ ./config/
 COPY mcp/ ./mcp/
+COPY serverapp/ ./serverapp/
 
 # 构建静态二进制文件 (添加优化编译参数)
 # -s: 去除符号表
@@ -48,7 +50,7 @@ RUN CGO_ENABLED=1 GOOS=linux go build \
 RUN upx --best --lzma bookmarks
 
 # 最终镜像 - 使用精简的 alpine
-FROM alpine:latest
+FROM ${BASE_IMAGE_PREFIX}/alpine:latest
 
 # 配置alpine镜像源(使用阿里云镜像)
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories

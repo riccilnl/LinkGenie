@@ -1,8 +1,102 @@
+// ========== 轻量状态管理 ==========
+
+const linkGenieStore = window.LinkGenieStore;
+const apiClient = window.LinkGenieAPI;
+
+function setSystemConfigState(next) {
+    return linkGenieStore.setSystemConfigState(next);
+}
+
+function getCurrentFolderId() {
+    return linkGenieStore.getCurrentFolderId();
+}
+
+function setCurrentFolderId(next) {
+    return linkGenieStore.setCurrentFolderId(next);
+}
+
+function setFolders(next) {
+    return linkGenieStore.replaceFolders(next);
+}
+
+function getAllBookmarksData() {
+    return linkGenieStore.getAllBookmarksData();
+}
+
+function setAllBookmarksData(next) {
+    return linkGenieStore.replaceAllBookmarksData(next);
+}
+
+function upsertBookmarkData(bookmark) {
+    return linkGenieStore.upsertBookmark(bookmark);
+}
+
+function setWorkflows(next) {
+    return linkGenieStore.replaceWorkflows(next);
+}
+
+function getCurrentWorkflowId() {
+    return linkGenieStore.getCurrentWorkflowId();
+}
+
+function setCurrentWorkflowId(next) {
+    return linkGenieStore.setCurrentWorkflowId(next);
+}
+
+function setWorkflowTriggers(next) {
+    return linkGenieStore.replaceWorkflowTriggers(next);
+}
+
+function setWorkflowActions(next) {
+    return linkGenieStore.replaceWorkflowActions(next);
+}
+
+function setCurrentCategory(next) {
+    return linkGenieStore.setCurrentCategory(next);
+}
+
+function getCurrentBookmarkId() {
+    return linkGenieStore.getCurrentBookmarkId();
+}
+
+function setCurrentBookmarkId(next) {
+    return linkGenieStore.setCurrentBookmarkId(next);
+}
+
+function getDeleteBookmarkId() {
+    return linkGenieStore.getDeleteBookmarkId();
+}
+
+function setDeleteBookmarkId(next) {
+    return linkGenieStore.setDeleteBookmarkId(next);
+}
+
+const systemConfigState = linkGenieStore.getSystemConfigState();
+const folders = linkGenieStore.getFolders();
+const bookmarkUrls = linkGenieStore.getBookmarkUrls();
+const allBookmarksData = getAllBookmarksData();
+const aiProcessingBookmarks = linkGenieStore.getAIProcessingBookmarks();
+const workflows = linkGenieStore.getWorkflows();
+const workflowTriggers = linkGenieStore.getWorkflowTriggers();
+const workflowActions = linkGenieStore.getWorkflowActions();
+
+function applyApiConfig(base, token) {
+    localStorage.setItem('api_base', base);
+    localStorage.setItem('api_token', token);
+
+    API_BASE = base;
+    API_TOKEN = token;
+    headers = {
+        'Authorization': `Bearer ${API_TOKEN}`,
+        'Content-Type': 'application/json'
+    };
+}
+
 // ========== 系统状态检查与引导 (Onboarding) ==========
 
 async function checkSystemStatus() {
     try {
-        const response = await fetch(`${API_BASE}/api/system/status`, { headers });
+        const response = await apiClient.system.getStatus();
         if (!response.ok) {
             if (response.status === 401) {
                 const isDefault = (API_TOKEN === 'your-secret-token-change-me' || !API_TOKEN);
@@ -15,6 +109,7 @@ async function checkSystemStatus() {
             throw new Error('无法连接到服务器');
         }
         const data = await response.json();
+        setSystemConfigState({ ...systemConfigState, ...data });
 
         // 如果数据库没有初始化(无书签)，显示引导页
         if (!data.initialized) {
@@ -48,7 +143,7 @@ function showOnboarding(message) {
     if (apiTokenInput) apiTokenInput.value = (API_TOKEN === 'your-secret-token-change-me') ? '' : API_TOKEN;
 
     // 获取并填充 AI 配置 (仅用于回填已有的配置，报错不影响新用户填写)
-    fetch(`${API_BASE}/api/system/config`, { headers }).then(r => {
+    apiClient.system.getConfig().then(r => {
         if (!r.ok) return {}; // 报错直接返回空
         return r.json();
     }).then(config => {
@@ -105,26 +200,21 @@ async function testAndSaveOnboarding() {
         if (aiModelInput.value.trim()) aiConfig['AI_MODEL'] = aiModelInput.value.trim();
         aiConfig['API_TOKEN'] = token;
 
-        const configResp = await fetch(`${base}/api/system/config`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }, // 此时可能还没 Token，后端已在中间件中放行此路径
-            body: JSON.stringify(aiConfig)
+        const configResp = await apiClient.system.saveConfig(aiConfig, {
+            base,
+            headers: { 'Content-Type': 'application/json' }
         });
 
         if (!configResp.ok) throw new Error('同步到服务器失败');
 
         // 2. 验证状态
-        const response = await fetch(`${base}/api/system/status`, { headers: testHeaders });
+        const response = await apiClient.system.getStatus({
+            base,
+            headers: testHeaders
+        });
 
         if (response.ok) {
-            // 保存到本地
-            localStorage.setItem('api_base', base);
-            localStorage.setItem('api_token', token);
-
-            // 更新全局
-            API_BASE = base;
-            API_TOKEN = token;
-            headers = testHeaders;
+            applyApiConfig(base, token);
 
             status.textContent = '✅ 配置已注入并成功连接！';
             status.style.color = '#34c759';
@@ -155,17 +245,7 @@ function saveApiConfig() {
         return;
     }
 
-    // 保存到 localStorage
-    localStorage.setItem('api_base', base);
-    localStorage.setItem('api_token', token);
-
-    // 更新全局变量
-    API_BASE = base;
-    API_TOKEN = token;
-    headers = {
-        'Authorization': `Bearer ${API_TOKEN}`,
-        'Content-Type': 'application/json'
-    };
+    applyApiConfig(base, token);
 
     // 显示保存成功提示
     const status = document.getElementById('apiConfigStatus');
@@ -178,14 +258,112 @@ function saveApiConfig() {
     loadBookmarks();
 }
 
+async function loadSystemConfig() {
+    const summary = document.getElementById('aiConfigSummary');
+    if (summary) {
+        summary.textContent = '正在读取当前 AI 配置...';
+        summary.style.color = '#8e8e93';
+    }
+
+    const response = await apiClient.system.getConfig();
+    if (!response.ok) {
+        throw new Error('读取系统配置失败');
+    }
+
+    const config = await response.json();
+    setSystemConfigState(config);
+
+    const aiEnabledInput = document.getElementById('aiEnabledInput');
+    const enableAsyncAiInput = document.getElementById('enableAsyncAiInput');
+    const aiApiKeyInput = document.getElementById('aiApiKeyInput');
+    const aiEndpointInput = document.getElementById('aiEndpointInput');
+    const aiModelInput = document.getElementById('aiModelInput');
+    const aiWorkerCountInput = document.getElementById('aiWorkerCountInput');
+
+    if (aiEnabledInput) aiEnabledInput.checked = !!config.ai_enabled;
+    if (enableAsyncAiInput) enableAsyncAiInput.checked = config.enable_async_ai !== false;
+    if (aiApiKeyInput) aiApiKeyInput.value = '';
+    if (aiEndpointInput) aiEndpointInput.value = config.ai_endpoint || '';
+    if (aiModelInput) aiModelInput.value = config.ai_model || '';
+    if (aiWorkerCountInput) aiWorkerCountInput.value = config.ai_worker_count || 2;
+
+    updateAiConfigSummary(config);
+}
+
+function updateAiConfigSummary(config) {
+    const summary = document.getElementById('aiConfigSummary');
+    if (!summary) return;
+
+    const enabledText = config.ai_enabled ? '已启用' : '未启用';
+    const keyText = config.ai_api_key_set ? 'Key 已设置' : 'Key 未设置';
+    const runtimeText = config.ai_runtime_available ? '运行时可用' : '运行时未启动';
+
+    summary.textContent = `状态: ${enabledText} · ${keyText} · ${runtimeText}`;
+    summary.style.color = config.ai_enabled ? '#34c759' : '#8e8e93';
+}
+
+async function saveAiConfig() {
+    const aiEnabledInput = document.getElementById('aiEnabledInput');
+    const enableAsyncAiInput = document.getElementById('enableAsyncAiInput');
+    const aiApiKeyInput = document.getElementById('aiApiKeyInput');
+    const aiEndpointInput = document.getElementById('aiEndpointInput');
+    const aiModelInput = document.getElementById('aiModelInput');
+    const aiWorkerCountInput = document.getElementById('aiWorkerCountInput');
+    const status = document.getElementById('aiConfigStatus');
+
+    const aiEnabled = !!aiEnabledInput.checked;
+    const asyncEnabled = !!enableAsyncAiInput.checked;
+    const aiKey = aiApiKeyInput.value.trim();
+    const aiEndpoint = aiEndpointInput.value.trim();
+    const aiModel = aiModelInput.value.trim();
+    const workerCount = parseInt(aiWorkerCountInput.value, 10) || 1;
+
+    if (aiEnabled && !aiKey && !systemConfigState.ai_api_key_set) {
+        alert('启用 AI 前必须先填写 API Key');
+        return;
+    }
+
+    if (workerCount <= 0) {
+        alert('AI Worker 数量必须大于 0');
+        return;
+    }
+
+    const payload = {
+        AI_ENABLED: String(aiEnabled),
+        ENABLE_ASYNC_AI: String(asyncEnabled),
+        AI_ENDPOINT: aiEndpoint,
+        AI_MODEL: aiModel,
+        AI_WORKER_COUNT: String(workerCount)
+    };
+
+    if (aiKey) {
+        payload.AI_API_KEY = aiKey;
+    }
+
+    const response = await apiClient.system.saveConfig(payload);
+
+    const responseText = await response.text();
+
+    if (!response.ok) {
+        throw new Error(responseText || '保存 AI 配置失败');
+    }
+
+    status.style.display = 'inline';
+    status.textContent = '✓ 已保存';
+    setTimeout(() => {
+        status.style.display = 'none';
+    }, 2000);
+
+    await loadSystemConfig();
+    showToast(aiEnabled ? '🤖 AI 已启用' : 'AI 已关闭');
+}
+
 // ========== 文件夹管理 ==========
-let folders = [];
-let currentFolderId = null;
 
 // 加载文件夹列表
 async function loadFolders() {
     try {
-        const response = await fetch(`${API_BASE}/api/folders/`, { headers });
+        const response = await apiClient.folders.list();
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -194,15 +372,15 @@ async function loadFolders() {
         // 验证数据格式
         if (!Array.isArray(data)) {
             console.error('Invalid folder data format:', data);
-            folders = [];
+            setFolders([]);
         } else {
-            folders = data;
+            setFolders(data);
         }
 
         renderFolders();
     } catch (error) {
         console.error('加载文件夹失败:', error);
-        folders = [];
+        setFolders([]);
         renderFolders();
     }
 }
@@ -213,7 +391,7 @@ function renderFolders() {
     if (!container) return;
 
     const html = folders.map(folder => `
-        <div class="category-item ${currentFolderId === folder.id ? 'active' : ''}" 
+        <div class="category-item ${getCurrentFolderId() === folder.id ? 'active' : ''}" 
              onclick="selectFolder(${folder.id}, event)"
              style="position: relative; padding-right: 60px;">
             <span>${folder.icon} ${folder.name}</span>
@@ -230,8 +408,8 @@ function renderFolders() {
 
 // 选择文件夹
 async function selectFolder(folderId, event) {
-    currentFolderId = folderId;
-    currentCategory = 'folder';
+    setCurrentFolderId(folderId);
+    setCurrentCategory('folder');
 
     // 更新UI
     document.querySelectorAll('.category-item').forEach(item => {
@@ -243,7 +421,10 @@ async function selectFolder(folderId, event) {
 
     // 加载文件夹内的书签
     try {
-        const response = await fetch(`${API_BASE}/api/folders/${folderId}/bookmarks`, { headers });
+        const response = await apiClient.folders.getBookmarks(folderId);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
         displayBookmarks(data.results);
     } catch (error) {
@@ -311,11 +492,7 @@ async function createFolder() {
     const icon = document.getElementById('folderIcon').value || '📁';
 
     try {
-        const response = await fetch(`${API_BASE}/api/folders/`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({ name, color, icon })
-        });
+        const response = await apiClient.folders.create({ name, color, icon });
 
         if (response.ok) {
             closeFolderModal();
@@ -356,11 +533,7 @@ async function updateFolder(id) {
     const icon = document.getElementById('folderIcon').value || '📁';
 
     try {
-        const response = await fetch(`${API_BASE}/api/folders/${id}`, {
-            method: 'PUT',
-            headers,
-            body: JSON.stringify({ name, color, icon })
-        });
+        const response = await apiClient.folders.update(id, { name, color, icon });
 
         if (response.ok) {
             closeFolderModal();
@@ -379,15 +552,12 @@ async function deleteFolder(id, event) {
     if (!confirm(`确定要删除文件夹"${folder.name}"吗？\n\n书签不会被删除，只是移出此文件夹。`)) return;
 
     try {
-        const response = await fetch(`${API_BASE}/api/folders/${id}`, {
-            method: 'DELETE',
-            headers
-        });
+        const response = await apiClient.folders.remove(id);
 
         if (response.ok) {
             loadFolders();
-            if (currentFolderId === id) {
-                currentFolderId = null;
+            if (getCurrentFolderId() === id) {
+                setCurrentFolderId(null);
                 loadBookmarks();
             }
         }
@@ -410,10 +580,6 @@ function toggleFolders() {
 }
 
 // ========== 工作流管理 ==========
-let workflows = [];
-let currentWorkflowId = null;
-let workflowTriggers = [];
-let workflowActions = [];
 
 // 显示工作流管理
 function showWorkflows() {
@@ -429,8 +595,11 @@ function closeWorkflowModal() {
 // 加载工作流列表
 async function loadWorkflows() {
     try {
-        const response = await fetch(`${API_BASE}/api/workflows/`, { headers });
-        workflows = await response.json();
+        const response = await apiClient.workflows.list();
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        setWorkflows(await response.json());
         renderWorkflows();
     } catch (error) {
         console.error('加载工作流失败:', error);
@@ -527,17 +696,13 @@ async function updateWorkflowPriorities() {
         // 批量更新优先级
         for (let i = 0; i < workflows.length; i++) {
             workflows[i].priority = i;
-            await fetch(`${API_BASE}/api/workflows/${workflows[i].id}`, {
-                method: 'PUT',
-                headers,
-                body: JSON.stringify({
-                    name: workflows[i].name,
-                    description: workflows[i].description,
-                    enabled: workflows[i].enabled,
-                    condition_logic: workflows[i].condition_logic,
-                    triggers: workflows[i].triggers.map(t => ({ trigger_type: t.trigger_type, config: t.config })),
-                    actions: workflows[i].actions.map(a => ({ action_type: a.action_type, config: a.config }))
-                })
+            await apiClient.workflows.update(workflows[i].id, {
+                name: workflows[i].name,
+                description: workflows[i].description,
+                enabled: workflows[i].enabled,
+                condition_logic: workflows[i].condition_logic,
+                triggers: workflows[i].triggers.map(t => ({ trigger_type: t.trigger_type, config: t.config })),
+                actions: workflows[i].actions.map(a => ({ action_type: a.action_type, config: a.config }))
             });
         }
         renderWorkflows();
@@ -549,10 +714,7 @@ async function updateWorkflowPriorities() {
 // 切换工作流启用状态
 async function toggleWorkflow(id) {
     try {
-        await fetch(`${API_BASE}/api/workflows/${id}/toggle`, {
-            method: 'POST',
-            headers
-        });
+        await apiClient.workflows.toggle(id);
         loadWorkflows();
     } catch (error) {
         console.error('切换工作流失败:', error);
@@ -561,9 +723,9 @@ async function toggleWorkflow(id) {
 
 // 显示工作流编辑器
 function showWorkflowEditor(id = null) {
-    currentWorkflowId = id;
-    workflowTriggers = [];
-    workflowActions = [{ type: 'move_to_folder', config: { folder_id: folders[0]?.id || 1 } }];
+    setCurrentWorkflowId(id);
+    setWorkflowTriggers([]);
+    setWorkflowActions([{ type: 'move_to_folder', config: { folder_id: folders[0]?.id || 1 } }]);
 
     document.getElementById('workflowListView').style.display = 'none';
     document.getElementById('workflowListActions').style.display = 'none';
@@ -574,8 +736,8 @@ function showWorkflowEditor(id = null) {
         document.getElementById('workflowName').value = wf.name;
         document.getElementById('workflowDesc').value = wf.description;
         document.getElementById('workflowLogic').value = wf.condition_logic;
-        workflowTriggers = wf.triggers.map(t => ({ type: t.trigger_type, config: t.config }));
-        workflowActions = wf.actions.map(a => ({ type: a.action_type, config: a.config }));
+        setWorkflowTriggers(wf.triggers.map(t => ({ type: t.trigger_type, config: t.config })));
+        setWorkflowActions(wf.actions.map(a => ({ type: a.action_type, config: a.config })));
     } else {
         document.getElementById('workflowName').value = '';
         document.getElementById('workflowDesc').value = '';
@@ -763,14 +925,10 @@ async function saveWorkflow() {
     };
 
     try {
-        const url = currentWorkflowId ? `${API_BASE}/api/workflows/${currentWorkflowId}` : `${API_BASE}/api/workflows/`;
-        const method = currentWorkflowId ? 'PUT' : 'POST';
-
-        const response = await fetch(url, {
-            method,
-            headers,
-            body: JSON.stringify(data)
-        });
+        const currentWorkflowId = getCurrentWorkflowId();
+        const response = currentWorkflowId
+            ? await apiClient.workflows.update(currentWorkflowId, data)
+            : await apiClient.workflows.create(data);
 
         if (response.ok) {
             backToWorkflowList();
@@ -792,10 +950,7 @@ async function deleteWorkflow(id) {
     if (!confirm('确定要删除此工作流吗？')) return;
 
     try {
-        await fetch(`${API_BASE}/api/workflows/${id}`, {
-            method: 'DELETE',
-            headers
-        });
+        await apiClient.workflows.remove(id);
         loadWorkflows();
     } catch (error) {
         console.error('删除工作流失败:', error);
@@ -813,14 +968,7 @@ async function runWorkflow(id) {
         // 获取所有书签ID
         const bookmarkIds = allBookmarksData.map(bm => bm.id);
 
-        const response = await fetch(`${API_BASE}/api/workflows/apply`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-                workflow_ids: [id],
-                bookmark_ids: bookmarkIds
-            })
-        });
+        const response = await apiClient.workflows.apply([id], bookmarkIds);
 
         if (response.ok) {
             // 显示成功提示
@@ -856,20 +1004,12 @@ async function runWorkflow(id) {
     }
 }
 
-let currentCategory = 'all';
-let currentBookmarkId = null;
-let deleteBookmarkId = null;
-let bookmarkUrls = new Set(); // URL缓存,用于快速检查重复
-let allBookmarksData = []; // 所有书签数据,用于前端过滤
-
 // 加载书签
 async function loadBookmarks(search = '') {
     try {
-        const url = search
-            ? `${API_BASE}/api/bookmarks/?q=${encodeURIComponent(search)}`
-            : `${API_BASE}/api/bookmarks/`;
-
-        const response = await fetch(url, { headers });
+        const response = await apiClient.bookmarks.list({
+            q: search || undefined
+        });
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -878,13 +1018,13 @@ async function loadBookmarks(search = '') {
         // 验证数据格式
         if (!data || !data.results || !Array.isArray(data.results)) {
             console.error('Invalid data format:', data);
-            allBookmarksData = [];
+            setAllBookmarksData([]);
             displayBookmarks([]);
             return;
         }
 
         // 保存数据用于过滤
-        allBookmarksData = data.results;
+        setAllBookmarksData(data.results);
 
         displayBookmarks(data.results);
         loadTags(data.results);
@@ -894,13 +1034,10 @@ async function loadBookmarks(search = '') {
         data.results.forEach(bm => bookmarkUrls.add(bm.url));
     } catch (error) {
         console.error('加载失败:', error);
-        allBookmarksData = [];
+        setAllBookmarksData([]);
         displayBookmarks([]);
     }
 }
-
-// 跟踪正在AI处理的书签
-const aiProcessingBookmarks = new Set();
 
 // 显示书签
 function displayBookmarks(bookmarks) {
@@ -953,7 +1090,7 @@ function updateSingleBookmarkCard(bookmark) {
     // 如果卡片不在当前视图中(可能被过滤掉了)，则更新数据但不更新UI
     const index = allBookmarksData.findIndex(bm => bm.id === bookmark.id);
     if (index !== -1) {
-        allBookmarksData[index] = bookmark;
+        upsertBookmarkData(bookmark);
     }
 
     if (!card) return;
@@ -999,7 +1136,11 @@ function loadCategories(bookmarks) {
 }
 
 // 加载标签
-function loadTags(bookmarks) {
+function loadTags(bookmarks = allBookmarksData) {
+    if (!Array.isArray(bookmarks)) {
+        bookmarks = [];
+    }
+
     const tagCounts = {};
     bookmarks.forEach(bm => {
         bm.tag_names.forEach(tag => {
@@ -1026,7 +1167,7 @@ function loadTags(bookmarks) {
 
 // 选择类别或标签
 function selectCategory(value, type, event) {
-    currentCategory = value;
+    setCurrentCategory(value);
     document.querySelectorAll('.category-item').forEach(el => el.classList.remove('active'));
     if (event) {
         event.target.closest('.category-item').classList.add('active');
@@ -1129,7 +1270,7 @@ function showAddModal() {
     document.getElementById('modalTitle').textContent = '添加书签';
     document.getElementById('bookmarkForm').reset();
     document.getElementById('errorMessage').classList.remove('show');
-    currentBookmarkId = null;
+    setCurrentBookmarkId(null);
 
     // 显示所有字段,保持与编辑模式一致
     document.getElementById('titleGroup').style.display = 'block';
@@ -1142,10 +1283,13 @@ function showAddModal() {
 // 编辑书签
 async function editBookmark(id) {
     try {
-        const response = await fetch(`${API_BASE}/api/bookmarks/${id}/`, { headers });
+        const response = await apiClient.bookmarks.get(id);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const bookmark = await response.json();
 
-        currentBookmarkId = id;
+        setCurrentBookmarkId(id);
         document.getElementById('modalTitle').textContent = '编辑书签';
         document.getElementById('errorMessage').classList.remove('show');
 
@@ -1166,18 +1310,36 @@ async function editBookmark(id) {
 
 // 删除书签
 function deleteBookmark(id) {
-    deleteBookmarkId = id;
+    setDeleteBookmarkId(id);
     document.getElementById('deleteModal').classList.add('show');
 }
 
-// 手动触发AI处理
-async function triggerAI(id) {
+function canAutoTrackEnhancement() {
+    return !!systemConfigState.ai_enabled &&
+        systemConfigState.enable_async_ai !== false &&
+        !!systemConfigState.ai_runtime_available;
+}
+
+async function watchBookmarkEnhancement(id, options = {}) {
+    if (aiProcessingBookmarks.has(id)) {
+        showToast('⏳ 该书签已在 AI 队列中，旧书签通常需要 1-2 分钟');
+        return;
+    }
+
+    const {
+        triggerRequest = false,
+        startMessage = '🤖 已加入 AI 队列，旧书签通常需要 1-2 分钟',
+        requestFailedMessage = '❌ AI请求失败',
+        completeMessage = '✅ AI处理完成!',
+        timeoutMessage = '⏳ AI 仍在后台处理中，请稍后刷新查看'
+    } = options;
+
     let checkInterval = null; // 在外部声明,以便在 catch 中访问
 
     try {
         // 添加到处理中列表
         aiProcessingBookmarks.add(id);
-        showToast('🤖 AI处理中,请稍候...');
+        showToast(startMessage);
 
         // 立即更新卡片显示处理动画
         const currentBm = allBookmarksData.find(b => b.id === id);
@@ -1188,40 +1350,42 @@ async function triggerAI(id) {
         // 获取当前状态作为对比
         let previousTitle = currentBm ? (currentBm.title || '') : '';
         let previousDesc = currentBm ? (currentBm.description || '') : '';
+        let previousTags = JSON.stringify(currentBm ? (currentBm.tag_names || []) : []);
+        let detectedChange = false;
 
         // 标记API请求是否完成
-        let apiRequestFinished = false;
+        let apiRequestFinished = !triggerRequest;
         let apiRequestFailed = false; // 新增:标记请求是否失败
 
-        // 发起请求(不阻塞UI)
-        fetch(`${API_BASE}/api/bookmarks/${id}/enhance/`, {
-            method: 'POST',
-            headers
-        }).then(async (response) => {
-            if (!response.ok) throw new Error('AI request failed');
-            // 请求完成后,稍微延迟一下标记,确保轮询能捕捉到
-            setTimeout(() => { apiRequestFinished = true; }, 500);
-        }).catch(error => {
-            console.error(error);
-            apiRequestFailed = true; // 标记为失败
-            apiRequestFinished = true; // 出错也算完成
-            showToast('❌ AI请求失败');
+        if (triggerRequest) {
+            // 发起请求(不阻塞UI)
+            apiClient.bookmarks.enhance(id).then(async (response) => {
+                if (!response.ok) throw new Error('AI request failed');
+                // 请求完成后,稍微延迟一下标记,确保轮询能捕捉到
+                setTimeout(() => { apiRequestFinished = true; }, 500);
+            }).catch(error => {
+                console.error(error);
+                apiRequestFailed = true; // 标记为失败
+                apiRequestFinished = true; // 出错也算完成
+                showToast(requestFailedMessage);
 
-            // 立即清除轮询并移除处理状态
-            if (checkInterval) {
-                clearInterval(checkInterval);
-                aiProcessingBookmarks.delete(id);
-                // 刷新卡片以移除闪光效果
-                const bookmark = allBookmarksData.find(b => b.id === id);
-                if (bookmark) {
-                    updateSingleBookmarkCard(bookmark);
+                // 立即清除轮询并移除处理状态
+                if (checkInterval) {
+                    clearInterval(checkInterval);
+                    aiProcessingBookmarks.delete(id);
+                    // 刷新卡片以移除闪光效果
+                    const bookmark = allBookmarksData.find(b => b.id === id);
+                    if (bookmark) {
+                        updateSingleBookmarkCard(bookmark);
+                    }
                 }
-            }
-        });
+            });
+        }
 
         // 等待AI处理完成(轮询检查)
         let attempts = 0;
-        const maxAttempts = 30; // 30秒超时
+        const maxAttempts = 100; // 约5分钟
+        const pollIntervalMs = 3000;
 
         checkInterval = setInterval(async () => {
             attempts++;
@@ -1235,7 +1399,7 @@ async function triggerAI(id) {
 
             try {
                 // 重新加载书签数据
-                const response = await fetch(`${API_BASE}/api/bookmarks/${id}/`, { headers });
+                const response = await apiClient.bookmarks.get(id);
                 if (!response.ok) throw new Error('Failed to fetch bookmark');
                 const bookmark = await response.json();
 
@@ -1249,19 +1413,23 @@ async function triggerAI(id) {
                 // 检查变化
                 const titleChanged = bookmark.title !== previousTitle;
                 const descChanged = bookmark.description !== previousDesc;
+                const currentTags = JSON.stringify(bookmark.tag_names || []);
+                const tagsChanged = currentTags !== previousTags;
 
-                console.log(`  标题变化: ${titleChanged}, 描述变化: ${descChanged}`);
+                console.log(`  标题变化: ${titleChanged}, 描述变化: ${descChanged}, 标签变化: ${tagsChanged}`);
 
                 // 如果有变化,更新内存数据并立即刷新UI
-                if (titleChanged || descChanged) {
+                if (titleChanged || descChanged || tagsChanged) {
                     console.log(`  ✅ 检测到变化,更新UI`);
                     previousTitle = bookmark.title;
                     previousDesc = bookmark.description;
+                    previousTags = currentTags;
+                    detectedChange = true;
 
                     // 更新内存中的数据
                     const index = allBookmarksData.findIndex(bm => bm.id === id);
                     if (index !== -1) {
-                        allBookmarksData[index] = bookmark;
+                        upsertBookmarkData(bookmark);
                         console.log(`  ✅ 已更新内存数据 index=${index}`);
                     }
 
@@ -1273,13 +1441,13 @@ async function triggerAI(id) {
                 }
 
                 // 结束条件: 
-                // 1. API请求已完成 AND 书签有完整内容
+                // 1. API请求已完成 AND 已检测到实际变化
                 // 2. 或者超时
-                const hasContent = bookmark.title && bookmark.description;
+                const hasMeaningfulUpdate = detectedChange;
 
-                console.log(`  API完成: ${apiRequestFinished}, 有内容: ${hasContent}, 尝试次数: ${attempts}/${maxAttempts}`);
+                console.log(`  API完成: ${apiRequestFinished}, 已检测变化: ${hasMeaningfulUpdate}, 尝试次数: ${attempts}/${maxAttempts}`);
 
-                if ((apiRequestFinished && hasContent) || attempts >= maxAttempts) {
+                if (apiRequestFinished && hasMeaningfulUpdate) {
                     console.log(`  🎉 轮询结束`);
                     clearInterval(checkInterval);
                     aiProcessingBookmarks.delete(id);
@@ -1291,11 +1459,19 @@ async function triggerAI(id) {
                     // 刷新文件夹列表(计数可能已变化)
                     loadFolders();
 
-                    if (attempts < maxAttempts) {
-                        showToast('✅ AI处理完成!');
-                    } else {
-                        showToast('⏱️ AI处理超时(但已保存)');
-                    }
+                    showToast(completeMessage);
+                    return;
+                }
+
+                if (attempts >= maxAttempts) {
+                    console.log(`  ⏱️ 达到轮询超时上限`);
+                    clearInterval(checkInterval);
+                    aiProcessingBookmarks.delete(id);
+
+                    // 做一次全量刷新，避免后台稍晚写入但前端仍显示旧数据
+                    loadBookmarks();
+                    loadFolders();
+                    showToast(timeoutMessage);
                 }
             } catch (error) {
                 console.error('状态检查失败:', error);
@@ -1306,7 +1482,7 @@ async function triggerAI(id) {
                     showToast('❌ 状态检查失败,已停止轮询');
                 }
             }
-        }, 1000);
+        }, pollIntervalMs);
 
     } catch (error) {
         if (checkInterval) {
@@ -1315,6 +1491,14 @@ async function triggerAI(id) {
         aiProcessingBookmarks.delete(id);
         alert('启动AI失败: ' + error.message);
     }
+}
+
+// 手动触发AI处理
+async function triggerAI(id) {
+    return watchBookmarkEnhancement(id, {
+        triggerRequest: true,
+        startMessage: '🤖 已加入 AI 队列，旧书签通常需要 1-2 分钟'
+    });
 }
 
 // 显示提示消息
@@ -1344,10 +1528,7 @@ function showToast(message) {
 // 确认删除
 async function confirmDelete() {
     try {
-        await fetch(`${API_BASE}/api/bookmarks/${deleteBookmarkId}/`, {
-            method: 'DELETE',
-            headers
-        });
+        await apiClient.bookmarks.remove(getDeleteBookmarkId());
         closeDeleteModal();
         loadBookmarks();
     } catch (error) {
@@ -1390,12 +1571,22 @@ function showSettings() {
     document.getElementById('apiBaseInput').value = API_BASE;
     document.getElementById('apiTokenInput').value = API_TOKEN;
     document.getElementById('settingsModal').classList.add('show');
+
+    loadSystemConfig().catch(error => {
+        console.error('加载系统配置失败:', error);
+        const summary = document.getElementById('aiConfigSummary');
+        if (summary) {
+            summary.textContent = '读取 AI 配置失败，请检查连接和 Token';
+            summary.style.color = '#ff453a';
+        }
+    });
 }
 
 function closeSettingsModal() {
     document.getElementById('settingsModal').classList.remove('show');
     document.getElementById('importFileName').textContent = '';
     document.getElementById('importProgress').style.display = 'none';
+    document.getElementById('aiApiKeyInput').value = '';
 }
 
 // ========== 标签优化功能 ==========
@@ -1403,7 +1594,7 @@ function closeSettingsModal() {
 // 加载标签统计
 async function loadTagStats() {
     try {
-        const response = await fetch(`${API_BASE}/api/tags/stats`, { headers });
+        const response = await apiClient.tags.getStats();
         if (!response.ok) throw new Error('获取统计失败');
 
         const stats = await response.json();
@@ -1430,14 +1621,10 @@ async function loadTagStats() {
 // 预览标签优化
 async function previewTagOptimization() {
     try {
-        const response = await fetch(`${API_BASE}/api/tags/optimize`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-                dry_run: true,
-                enable_merge: true,
-                enable_promotion: true
-            })
+        const response = await apiClient.tags.optimize({
+            dry_run: true,
+            enable_merge: true,
+            enable_promotion: true
         });
 
         if (!response.ok) throw new Error('预览失败');
@@ -1495,14 +1682,10 @@ async function executeTagOptimization() {
     }
 
     try {
-        const response = await fetch(`${API_BASE}/api/tags/optimize`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-                dry_run: false,
-                enable_merge: true,
-                enable_promotion: true
-            })
+        const response = await apiClient.tags.optimize({
+            dry_run: false,
+            enable_merge: true,
+            enable_promotion: true
         });
 
         if (!response.ok) throw new Error('优化失败');
@@ -1538,21 +1721,15 @@ function handleImportFile() {
 
 // 导入书签
 async function importBookmarksFile(file) {
-    const formData = new FormData();
-    formData.append('file', file);
-
     document.getElementById('importProgress').style.display = 'block';
     document.getElementById('importProgressBar').style.width = '0%';
 
     try {
-        const response = await fetch(`${API_BASE}/api/bookmarks/import/`, {
-            method: 'POST',
+        const response = await apiClient.bookmarks.importFile(file, {
             headers: {
                 'Authorization': `Bearer ${API_TOKEN}`
-            },
-            body: formData
+            }
         });
-
         const result = await response.json();
         document.getElementById('importProgressBar').style.width = '100%';
 
@@ -1570,7 +1747,7 @@ async function importBookmarksFile(file) {
 // 导出书签
 async function exportBookmarks() {
     try {
-        const response = await fetch(`${API_BASE}/api/bookmarks/export/`, { headers });
+        const response = await apiClient.bookmarks.export();
         const blob = await response.blob();
 
         const url = window.URL.createObjectURL(blob);
@@ -1609,9 +1786,20 @@ function closeDrawer() {
 // 注册 Service Worker
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
+        let serviceWorkerRefreshing = false;
+
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (serviceWorkerRefreshing) {
+                return;
+            }
+            serviceWorkerRefreshing = true;
+            window.location.reload();
+        });
+
         navigator.serviceWorker.register('/sw.js')
             .then(registration => {
                 console.log('✅ ServiceWorker 注册成功:', registration.scope);
+                return registration.update();
             })
             .catch(error => {
                 console.log('❌ ServiceWorker 注册失败:', error);
@@ -1642,27 +1830,29 @@ if (bookmarkForm) {
 
         try {
             let response;
+            const currentBookmarkId = getCurrentBookmarkId();
             if (currentBookmarkId) {
                 // 编辑模式 - 更新书签
-                response = await fetch(`${API_BASE}/api/bookmarks/${currentBookmarkId}/`, {
-                    method: 'PUT',
-                    headers,
-                    body: JSON.stringify(data)
-                });
+                response = await apiClient.bookmarks.update(currentBookmarkId, data);
             } else {
                 // 添加模式 - 创建新书签
-                response = await fetch(`${API_BASE}/api/bookmarks/`, {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify(data)
-                });
+                response = await apiClient.bookmarks.create(data);
             }
 
             if (response.ok) {
+                const savedBookmark = await response.json();
+
                 closeModal();
-                loadBookmarks();
-                loadFolders();
+                await loadBookmarks();
+                await loadFolders();
                 showToast(currentBookmarkId ? '✅ 更新成功!' : '✅ 添加成功!');
+
+                if (!currentBookmarkId && savedBookmark && savedBookmark.id && canAutoTrackEnhancement()) {
+                    watchBookmarkEnhancement(savedBookmark.id, {
+                        triggerRequest: false,
+                        startMessage: '🤖 已自动加入 AI 队列，通常需要 10-30 秒'
+                    });
+                }
             } else {
                 const error = await response.text();
                 document.getElementById('errorMessage').textContent = error || '保存失败';

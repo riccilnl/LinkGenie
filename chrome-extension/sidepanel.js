@@ -513,21 +513,78 @@ async function loadAiConfigFromServer() {
 }
 
 // Handle import file
-function handleImportFile() {
+async function handleImportFile() {
     const fileInput = document.getElementById('importFile');
     const fileName = document.getElementById('importFileName');
+    const progress = document.getElementById('importProgress');
+    const progressBar = document.getElementById('importProgressBar');
 
     if (fileInput.files.length > 0) {
-        fileName.textContent = fileInput.files[0].name;
-        // TODO: Implement actual import logic
-        alert('导入功能开发中...');
+        const file = fileInput.files[0];
+        fileName.textContent = file.name;
+        progress.style.display = 'block';
+        progressBar.style.width = '0%';
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch(`${API_BASE}/api/bookmarks/import/`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${API_TOKEN}`
+                },
+                body: formData
+            });
+
+            const responseText = await response.text();
+            if (!response.ok) {
+                throw new Error(responseText || '导入失败');
+            }
+
+            const result = JSON.parse(responseText);
+            progressBar.style.width = '100%';
+
+            setTimeout(() => {
+                alert(`导入完成！\n成功: ${result.success}\n跳过: ${result.skipped || 0}\n失败: ${result.failed}`);
+                progress.style.display = 'none';
+                fileInput.value = '';
+                loadBookmarksFromAPI();
+                loadFoldersFromAPI();
+            }, 300);
+        } catch (error) {
+            progress.style.display = 'none';
+            alert('导入失败: ' + error.message);
+        }
     }
 }
 
 // Export bookmarks
-function exportBookmarks() {
-    // TODO: Implement actual export logic
-    alert('导出功能开发中...');
+async function exportBookmarks() {
+    try {
+        const response = await fetch(`${API_BASE}/api/bookmarks/export/`, {
+            headers: {
+                'Authorization': `Bearer ${API_TOKEN}`
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || '导出失败');
+        }
+
+        const blob = await response.blob();
+        const downloadUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `bookmarks_${new Date().toISOString().split('T')[0]}.html`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+        alert('导出失败: ' + error.message);
+    }
 }
 
 // Filter bookmarks by tab

@@ -42,7 +42,7 @@ func (s *MCPServer) handleAllBookmarks(ctx context.Context, request mcp.ReadReso
 	}
 
 	result := formatBookmarks(bookmarks, "所有书签")
-	
+
 	return []mcp.ResourceContents{
 		mcp.TextResourceContents{
 			URI:      "bookmarks://all",
@@ -59,7 +59,7 @@ func (s *MCPServer) handleFoldersResource(ctx context.Context, request mcp.ReadR
 	}
 
 	result := formatFolders(folders)
-	
+
 	return []mcp.ResourceContents{
 		mcp.TextResourceContents{
 			URI:      "bookmarks://folders",
@@ -76,7 +76,7 @@ func (s *MCPServer) handleTagsResource(ctx context.Context, request mcp.ReadReso
 	}
 
 	result := formatTags(tags)
-	
+
 	return []mcp.ResourceContents{
 		mcp.TextResourceContents{
 			URI:      "bookmarks://tags",

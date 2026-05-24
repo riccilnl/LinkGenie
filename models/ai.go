@@ -13,4 +13,5 @@ type PageMetadata struct {
 	Description string
 	OGTitle     string
 	OGDesc      string
+	Readme      string
 }

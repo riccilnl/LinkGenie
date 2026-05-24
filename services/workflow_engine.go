@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"ai-bookmark-service/db"
-	"ai-bookmark-service/models"
+	"github.com/riccilnl/LinkGenie/db"
+	"github.com/riccilnl/LinkGenie/models"
 )
 
 // WorkflowEngine handles workflow operations
@@ -296,15 +296,23 @@ func evaluateKeywordMatch(bookmark *models.Bookmark, config map[string]interface
 
 // 评估单个触发器
 func evaluateTrigger(bookmark *models.Bookmark, trigger models.WorkflowTrigger) bool {
+	return evaluateTriggerForEvent(bookmark, trigger, "", nil, nil)
+}
+
+func evaluateTriggerForEvent(bookmark *models.Bookmark, trigger models.WorkflowTrigger, eventType string, before *models.Bookmark, after *models.Bookmark) bool {
 	switch trigger.TriggerType {
 	case "url_match":
 		return evaluateURLMatch(bookmark, trigger.Config)
 	case "keyword_match":
 		return evaluateKeywordMatch(bookmark, trigger.Config)
-	// 事件触发器在事件发生时已经匹配,这里总是返回true
-	case "bookmark_created", "bookmark_updated", "bookmark_deleted",
-		"title_changed", "description_added", "bookmark_tagged":
-		return true
+	case "bookmark_created", "bookmark_updated", "bookmark_deleted":
+		return trigger.TriggerType == eventType
+	case "title_changed":
+		return eventType == "bookmark_updated" && before != nil && after != nil && before.Title != after.Title
+	case "description_added":
+		return eventType == "bookmark_updated" && before != nil && after != nil && before.Description == "" && after.Description != ""
+	case "bookmark_tagged":
+		return eventType == "bookmark_updated" && before != nil && after != nil && hasNewTags(before.TagNames, after.TagNames)
 	default:
 		return false
 	}
@@ -312,13 +320,17 @@ func evaluateTrigger(bookmark *models.Bookmark, trigger models.WorkflowTrigger) 
 
 // 评估工作流是否匹配
 func evaluateWorkflow(bookmark *models.Bookmark, workflow *models.Workflow) bool {
+	return evaluateWorkflowForEvent(bookmark, workflow, "", nil, nil)
+}
+
+func evaluateWorkflowForEvent(bookmark *models.Bookmark, workflow *models.Workflow, eventType string, before *models.Bookmark, after *models.Bookmark) bool {
 	if len(workflow.Triggers) == 0 {
 		return false
 	}
 
 	results := make([]bool, len(workflow.Triggers))
 	for i, trigger := range workflow.Triggers {
-		results[i] = evaluateTrigger(bookmark, trigger)
+		results[i] = evaluateTriggerForEvent(bookmark, trigger, eventType, before, after)
 	}
 
 	// 根据condition_logic组合结果
@@ -341,22 +353,36 @@ func evaluateWorkflow(bookmark *models.Bookmark, workflow *models.Workflow) bool
 }
 
 // 执行工作流动作
-func (e *WorkflowEngine) executeWorkflowActions(bookmark *models.Bookmark, actions []models.WorkflowAction) {
+func (e *WorkflowEngine) executeWorkflowActions(eventType string, bookmark *models.Bookmark, actions []models.WorkflowAction) {
 	for _, action := range actions {
 		switch action.ActionType {
 		case "move_to_folder":
+			if eventType == "bookmark_deleted" {
+				log.Printf("ℹ️ 跳过已删除书签的 move_to_folder 动作: bookmark_id=%d", bookmark.ID)
+				continue
+			}
 			if folderID, ok := action.Config["folder_id"].(float64); ok {
-				e.folderRepo.AddBookmark(bookmark.ID, int(folderID))
+				if err := e.folderRepo.AddBookmark(bookmark.ID, int(folderID)); err != nil {
+					log.Printf("⚠️ 工作流移动文件夹失败: bookmark_id=%d folder_id=%d err=%v", bookmark.ID, int(folderID), err)
+				}
 			}
 		}
 	}
 }
 
-// 对书签执行所有启用的工作流
-func (e *WorkflowEngine) executeWorkflowsForBookmark(bookmark *models.Bookmark) {
+// HandleBookmarkEvent 按真实事件执行工作流
+func (e *WorkflowEngine) HandleBookmarkEvent(eventType string, before *models.Bookmark, after *models.Bookmark) error {
 	workflows, err := e.ListWorkflows()
 	if err != nil {
-		return
+		return err
+	}
+
+	target := after
+	if target == nil {
+		target = before
+	}
+	if target == nil {
+		return nil
 	}
 
 	for _, workflow := range workflows {
@@ -364,10 +390,12 @@ func (e *WorkflowEngine) executeWorkflowsForBookmark(bookmark *models.Bookmark) 
 			continue
 		}
 
-		if evaluateWorkflow(bookmark, workflow) {
-			e.executeWorkflowActions(bookmark, workflow.Actions)
+		if evaluateWorkflowForEvent(target, workflow, eventType, before, after) {
+			e.executeWorkflowActions(eventType, target, workflow.Actions)
 		}
 	}
+
+	return nil
 }
 
 // ApplyWorkflowsToBookmarks applies workflows to bookmarks
@@ -411,10 +439,25 @@ func (e *WorkflowEngine) ApplyWorkflowsToBookmarks(workflowIDs []int, bookmarkID
 	for _, bookmark := range bookmarks {
 		for _, workflow := range workflows {
 			if evaluateWorkflow(bookmark, workflow) {
-				e.executeWorkflowActions(bookmark, workflow.Actions)
+				e.executeWorkflowActions("", bookmark, workflow.Actions)
 			}
 		}
 	}
 
 	return nil
+}
+
+func hasNewTags(beforeTags, afterTags []string) bool {
+	beforeSet := make(map[string]bool, len(beforeTags))
+	for _, tag := range beforeTags {
+		beforeSet[tag] = true
+	}
+
+	for _, tag := range afterTags {
+		if !beforeSet[tag] {
+			return true
+		}
+	}
+
+	return false
 }

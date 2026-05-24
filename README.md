@@ -95,6 +95,8 @@ services:
 所有 API 需在 Header 中携带 `Authorization: Token YOUR_TOKEN`。
 
 *   `POST /api/bookmarks` - 创建新书签（触发 AI 异步增强及工作流）
+*   `POST /api/bookmarks/import/` - 导入 Netscape HTML 书签
+*   `GET /api/bookmarks/export/` - 导出 Netscape HTML 书签
 *   `POST /api/tags/optimize` - 触发全局标签清洗与规范化
 *   `POST /api/workflows/apply` - 对存量书签手动应用工作流规则
 *   `GET /mcp/` - MCP 协议交互端点
@@ -105,7 +107,16 @@ services:
 
 本服务旨在成为 Linkding 的轻量化、增强版替代方案。
 - **支持客户端**：[Linkdy (iOS/Android)](https://github.com/JGeek00/linkdy), [Linkding Web Extension](https://github.com/sissbruecker/linkding-extension).
+- **表单兼容**：兼容 `application/json`、`application/x-www-form-urlencoded`、`multipart/form-data` 三类创建请求。
+- **Linkdy 兼容细节**：`GET /api/bookmarks/check` 返回 Linkdy 所需的 `bookmark + metadata` 结构；表单客户端重复创建同一 URL 时按幂等成功返回已有书签，不再报 409。
+- **标签接口兼容**：兼容 `/api/tags/` 尾斜杠访问，并返回分页结构 `count/next/previous/results`。
 - **导出支持**：完全支持 Netscape HTML 标准格式导出。
+
+---
+
+## 🗺️ 开发计划
+
+版本化重构与审查改进计划见 [docs/VERSION_DEVELOPMENT_PLAN.md](./docs/VERSION_DEVELOPMENT_PLAN.md)。
 
 ---
 

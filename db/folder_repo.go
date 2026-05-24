@@ -6,19 +6,19 @@ import (
 	"strings"
 	"time"
 
-	"ai-bookmark-service/models"
+	"github.com/riccilnl/LinkGenie/models"
 )
 
 // FolderRepository handles folder database operations
 type FolderRepository struct {
-	db         *sql.DB
+	db           *sql.DB
 	bookmarkRepo *BookmarkRepository
 }
 
 // NewFolderRepository creates a new folder repository
 func NewFolderRepository(bookmarkRepo *BookmarkRepository) *FolderRepository {
 	return &FolderRepository{
-		db:         DB,
+		db:           DB,
 		bookmarkRepo: bookmarkRepo,
 	}
 }
@@ -31,9 +31,9 @@ func (r *FolderRepository) Create(fc *models.FolderCreate) (*models.Folder, erro
 		log.Printf("⚠️ 获取最大sort_order失败: %v, 使用默认值0", err)
 		maxOrder = 0
 	}
-	
+
 	now := time.Now().UTC().Format(time.RFC3339Nano)
-	
+
 	// Set defaults
 	color := fc.Color
 	if color == "" {
@@ -43,7 +43,7 @@ func (r *FolderRepository) Create(fc *models.FolderCreate) (*models.Folder, erro
 	if icon == "" {
 		icon = "📁"
 	}
-	
+
 	result, err := r.db.Exec(
 		"INSERT INTO folders (name, color, icon, sort_order, date_added) VALUES (?, ?, ?, ?, ?)",
 		fc.Name, color, icon, maxOrder+1, now,
@@ -51,7 +51,7 @@ func (r *FolderRepository) Create(fc *models.FolderCreate) (*models.Folder, erro
 	if err != nil {
 		return nil, err
 	}
-	
+
 	id, _ := result.LastInsertId()
 	return r.GetByID(int(id))
 }
@@ -63,17 +63,17 @@ func (r *FolderRepository) GetByID(id int) (*models.Folder, error) {
 		"SELECT id, name, color, icon, sort_order, date_added FROM folders WHERE id = ?",
 		id,
 	).Scan(&folder.ID, &folder.Name, &folder.Color, &folder.Icon, &folder.SortOrder, &folder.DateAdded)
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Get bookmark count
 	if err := r.db.QueryRow("SELECT COUNT(*) FROM bookmark_folders WHERE folder_id = ?", id).Scan(&folder.Count); err != nil {
 		log.Printf("⚠️ 获取文件夹书签数量失败: %v", err)
 		folder.Count = 0
 	}
-	
+
 	return &folder, nil
 }
 
@@ -94,7 +94,7 @@ func (r *FolderRepository) List() ([]*models.Folder, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	folders := []*models.Folder{}
 	for rows.Next() {
 		var folder models.Folder
@@ -105,7 +105,7 @@ func (r *FolderRepository) List() ([]*models.Folder, error) {
 		log.Printf("📁 文件夹: %s (ID: %d), 书签数量: %d", folder.Name, folder.ID, folder.Count)
 		folders = append(folders, &folder)
 	}
-	
+
 	return folders, nil
 }
 
@@ -114,7 +114,7 @@ func (r *FolderRepository) Update(id int, fc *models.FolderCreate, sortOrder *in
 	// Build dynamic update statement
 	updates := []string{}
 	args := []interface{}{}
-	
+
 	if fc.Name != "" {
 		updates = append(updates, "name = ?")
 		args = append(args, fc.Name)
@@ -131,19 +131,19 @@ func (r *FolderRepository) Update(id int, fc *models.FolderCreate, sortOrder *in
 		updates = append(updates, "sort_order = ?")
 		args = append(args, *sortOrder)
 	}
-	
+
 	if len(updates) == 0 {
 		return r.GetByID(id)
 	}
-	
+
 	query := "UPDATE folders SET " + strings.Join(updates, ", ") + " WHERE id = ?"
 	args = append(args, id)
-	
+
 	_, err := r.db.Exec(query, args...)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return r.GetByID(id)
 }
 
@@ -161,7 +161,7 @@ func (r *FolderRepository) GetBookmarks(folderID int, limit, offset int) ([]*mod
 		log.Printf("⚠️ 获取文件夹书签总数失败: %v", err)
 		total = 0
 	}
-	
+
 	// Get bookmark IDs
 	rows, err := r.db.Query(`
 		SELECT bf.bookmark_id 
@@ -171,12 +171,12 @@ func (r *FolderRepository) GetBookmarks(folderID int, limit, offset int) ([]*mod
 		ORDER BY bf.date_added DESC
 		LIMIT ? OFFSET ?
 	`, folderID, limit, offset)
-	
+
 	if err != nil {
 		return nil, 0, err
 	}
 	defer rows.Close()
-	
+
 	bookmarks := []*models.Bookmark{}
 	for rows.Next() {
 		var id int
@@ -190,7 +190,7 @@ func (r *FolderRepository) GetBookmarks(folderID int, limit, offset int) ([]*mod
 			log.Printf("⚠️ 获取书签详情失败 ID=%d: %v", id, err)
 		}
 	}
-	
+
 	return bookmarks, total, nil
 }
 
@@ -221,12 +221,12 @@ func (r *FolderRepository) GetBookmarkFolders(bookmarkID int) ([]*models.Folder,
 		WHERE bf.bookmark_id = ?
 		ORDER BY f.sort_order
 	`, bookmarkID)
-	
+
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	folders := []*models.Folder{}
 	for rows.Next() {
 		var id int
@@ -240,6 +240,6 @@ func (r *FolderRepository) GetBookmarkFolders(bookmarkID int) ([]*models.Folder,
 			log.Printf("⚠️ 获取文件夹详情失败 ID=%d: %v", id, err)
 		}
 	}
-	
+
 	return folders, nil
 }

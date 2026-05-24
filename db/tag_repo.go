@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"ai-bookmark-service/models"
+	"github.com/riccilnl/LinkGenie/models"
 )
 
 // TagRepository 标签数据库操作
@@ -22,7 +22,7 @@ func (r *TagRepository) GetByID(id int) (*models.Tag, error) {
 	var tag models.Tag
 	err := r.db.QueryRow(`
 		SELECT id, name, COALESCE(category, 'candidate'), COALESCE(usage_count, 0), 
-		       COALESCE(last_used, date_added), date_added 
+		       COALESCE(last_used, date_added, ''), COALESCE(date_added, '')
 		FROM tags WHERE id = ?
 	`, id).Scan(&tag.ID, &tag.Name, &tag.Category, &tag.UsageCount, &tag.LastUsed, &tag.DateAdded)
 
@@ -59,7 +59,7 @@ func (r *TagRepository) GetOrCreate(tagName string) (int, error) {
 func (r *TagRepository) List() ([]*models.Tag, error) {
 	rows, err := r.db.Query(`
 		SELECT id, name, COALESCE(category, 'candidate'), COALESCE(usage_count, 0), 
-		       COALESCE(last_used, date_added), date_added 
+		       COALESCE(last_used, date_added, ''), COALESCE(date_added, '')
 		FROM tags ORDER BY name
 	`)
 	if err != nil {
@@ -100,7 +100,7 @@ func (r *TagRepository) ListByCategories(categories []string) ([]*models.Tag, er
 
 	query := fmt.Sprintf(`
 		SELECT id, name, COALESCE(category, 'candidate'), COALESCE(usage_count, 0), 
-		       COALESCE(last_used, date_added), date_added 
+		       COALESCE(last_used, date_added, ''), COALESCE(date_added, '')
 		FROM tags 
 		WHERE category IN (%s)
 		ORDER BY usage_count DESC, name
@@ -221,11 +221,35 @@ func (r *TagRepository) IncrementUsage(tagID int) error {
 	return nil
 }
 
+// RecalculateUsageCounts 重算所有标签使用次数
+func (r *TagRepository) RecalculateUsageCounts() error {
+	_, err := r.db.Exec(`
+		UPDATE tags
+		SET usage_count = (
+			SELECT COUNT(*)
+			FROM bookmark_tags
+			WHERE bookmark_tags.tag_id = tags.id
+		),
+		last_used = CASE
+			WHEN EXISTS (
+				SELECT 1
+				FROM bookmark_tags
+				WHERE bookmark_tags.tag_id = tags.id
+			) THEN CURRENT_TIMESTAMP
+			ELSE last_used
+		END
+	`)
+	if err != nil {
+		return fmt.Errorf("重算标签使用次数失败: %w", err)
+	}
+	return nil
+}
+
 // GetTopTags 获取使用次数最多的标签
 func (r *TagRepository) GetTopTags(limit int) []*models.Tag {
 	rows, err := r.db.Query(`
 		SELECT id, name, COALESCE(category, 'candidate'), COALESCE(usage_count, 0), 
-		       COALESCE(last_used, date_added), date_added 
+		       COALESCE(last_used, date_added, ''), COALESCE(date_added, '')
 		FROM tags 
 		WHERE usage_count > 0
 		ORDER BY usage_count DESC, name 

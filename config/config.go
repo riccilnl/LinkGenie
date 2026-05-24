@@ -25,6 +25,16 @@ type Config struct {
 	AIWorkerCount    int
 }
 
+// Clone 复制一份配置，供预校验使用。
+func (c *Config) Clone() *Config {
+	if c == nil {
+		return nil
+	}
+
+	clone := *c
+	return &clone
+}
+
 // Load 加载配置（从 .env 文件和环境变量）
 func Load() (*Config, error) {
 	// 尝试加载 .env 文件（如果不存在也不报错）
@@ -84,9 +94,72 @@ func (c *Config) LoadFromDB(dbAPI interface {
 				c.AIModel = value
 			}
 		case "AI_ENABLED":
-			c.AIEnabled = value == "true" || value == "1"
+			c.AIEnabled = parseConfigBool(value)
+		case "ENABLE_ASYNC_AI":
+			c.EnableAsyncAI = parseConfigBool(value)
+		case "AI_WORKER_COUNT":
+			if workerCount, err := strconv.Atoi(value); err == nil && workerCount > 0 {
+				c.AIWorkerCount = workerCount
+			}
 		}
 	}
+	return nil
+}
+
+func parseConfigBool(value string) bool {
+	value = strings.ToLower(strings.TrimSpace(value))
+	return value == "true" || value == "1" || value == "yes"
+}
+
+// ApplyOverrides 将输入配置覆盖到当前配置对象，用于热重载前预校验。
+func (c *Config) ApplyOverrides(overrides map[string]string) error {
+	if c == nil {
+		return fmt.Errorf("配置对象为空")
+	}
+
+	explicitAIEnabled := false
+	for key, value := range overrides {
+		switch key {
+		case "API_TOKEN":
+			c.APIToken = strings.TrimSpace(value)
+		case "AI_API_KEY":
+			c.AIAPIKey = strings.TrimSpace(value)
+		case "AI_ENDPOINT":
+			c.AIEndpoint = strings.TrimSpace(value)
+		case "AI_MODEL":
+			c.AIModel = strings.TrimSpace(value)
+		case "AI_ENABLED":
+			c.AIEnabled = parseConfigBool(value)
+			explicitAIEnabled = true
+		case "ENABLE_ASYNC_AI":
+			c.EnableAsyncAI = parseConfigBool(value)
+		case "AI_WORKER_COUNT":
+			workerCount, err := strconv.Atoi(strings.TrimSpace(value))
+			if err != nil {
+				return fmt.Errorf("AI_WORKER_COUNT 格式无效")
+			}
+			c.AIWorkerCount = workerCount
+		case "RATE_LIMIT_ENABLED":
+			c.RateLimitEnabled = parseConfigBool(value)
+		case "RATE_LIMIT_PER_IP":
+			rateLimit, err := strconv.Atoi(strings.TrimSpace(value))
+			if err != nil {
+				return fmt.Errorf("RATE_LIMIT_PER_IP 格式无效")
+			}
+			c.RateLimitPerIP = rateLimit
+		case "RATE_LIMIT_BURST":
+			burst, err := strconv.Atoi(strings.TrimSpace(value))
+			if err != nil {
+				return fmt.Errorf("RATE_LIMIT_BURST 格式无效")
+			}
+			c.RateLimitBurst = burst
+		}
+	}
+
+	if !explicitAIEnabled && c.AIAPIKey != "" {
+		c.AIEnabled = true
+	}
+
 	return nil
 }
 
@@ -138,6 +211,14 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("AI 已启用但未设置 AI_API_KEY")
 	}
 
+	if c.AIEnabled && strings.TrimSpace(c.AIEndpoint) == "" {
+		return fmt.Errorf("AI 已启用但未设置 AI_ENDPOINT")
+	}
+
+	if c.AIEnabled && strings.TrimSpace(c.AIModel) == "" {
+		return fmt.Errorf("AI 已启用但未设置 AI_MODEL")
+	}
+
 	// 警告: AI endpoint指向localhost
 	if c.AIEnabled && (strings.Contains(c.AIEndpoint, "localhost") ||
 		strings.Contains(c.AIEndpoint, "127.0.0.1") ||
@@ -148,6 +229,10 @@ func (c *Config) Validate() error {
 
 	if c.RateLimitPerIP <= 0 {
 		return fmt.Errorf("RATE_LIMIT_PER_IP 必须大于 0")
+	}
+
+	if c.AIWorkerCount <= 0 {
+		return fmt.Errorf("AI_WORKER_COUNT 必须大于 0")
 	}
 
 	return nil

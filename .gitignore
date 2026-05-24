@@ -54,10 +54,7 @@ go.work
 deploy.sh
 mcp/claude_desktop_config.json
 
-# 🚫 公开仓库排除项（私有仓库保留）
-# 开发文档
-Docs/
-docs/
+# 文档需要进入版本控制，保留 docs-first 工作流
 
 # 测试代码
 Test/

@@ -2,12 +2,13 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
 	"time"
 
-	"ai-bookmark-service/models"
+	"github.com/riccilnl/LinkGenie/models"
 )
 
 // BookmarkRepository 书签数据库操作
@@ -22,14 +23,6 @@ func NewBookmarkRepository() *BookmarkRepository {
 
 // Create 创建书签（带事务处理）
 func (r *BookmarkRepository) Create(bm *models.BookmarkCreate) (*models.Bookmark, error) {
-	// 检查是否已存在
-	var existingID int
-	err := r.db.QueryRow("SELECT id FROM bookmarks WHERE url = ?", bm.URL).Scan(&existingID)
-	if err == nil {
-		log.Printf("🔄 URL已存在(ID=%d)，转为更新操作", existingID)
-		return r.Update(existingID, bm)
-	}
-
 	// 开始事务
 	tx, err := r.db.Begin()
 	if err != nil {
@@ -75,6 +68,19 @@ func (r *BookmarkRepository) Create(bm *models.BookmarkCreate) (*models.Bookmark
 
 	// 获取创建的书签
 	return r.GetByID(int(id))
+}
+
+// ExistsByURL 检查 URL 是否已存在
+func (r *BookmarkRepository) ExistsByURL(url string) (bool, int, error) {
+	var id int
+	err := r.db.QueryRow("SELECT id FROM bookmarks WHERE url = ?", url).Scan(&id)
+	if err == nil {
+		return true, id, nil
+	}
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, 0, nil
+	}
+	return false, 0, err
 }
 
 // Update 更新书签（带事务处理）
@@ -206,6 +212,25 @@ func (r *BookmarkRepository) List(limit, offset int, filters map[string]interfac
 		args = append(args, shared)
 	}
 
+	if tag, ok := filters["tag"].(string); ok && tag != "" {
+		whereClauses = append(whereClauses, `EXISTS (
+			SELECT 1
+			FROM bookmark_tags bt2
+			JOIN tags t2 ON bt2.tag_id = t2.id
+			WHERE bt2.bookmark_id = b.id AND t2.name = ?
+		)`)
+		args = append(args, tag)
+	}
+
+	if folderID, ok := extractFilterInt(filters, "folder_id"); ok && folderID > 0 {
+		whereClauses = append(whereClauses, `EXISTS (
+			SELECT 1
+			FROM bookmark_folders bf2
+			WHERE bf2.bookmark_id = b.id AND bf2.folder_id = ?
+		)`)
+		args = append(args, folderID)
+	}
+
 	if len(whereClauses) > 0 {
 		query += " WHERE " + strings.Join(whereClauses, " AND ")
 	}
@@ -276,6 +301,35 @@ func (r *BookmarkRepository) Count(filters map[string]interface{}) (int, error) 
 		args = append(args, searchTerm, searchTerm, searchTerm)
 	}
 
+	if unread, ok := filters["unread"].(bool); ok {
+		whereClauses = append(whereClauses, "unread = ?")
+		args = append(args, unread)
+	}
+
+	if shared, ok := filters["shared"].(bool); ok {
+		whereClauses = append(whereClauses, "shared = ?")
+		args = append(args, shared)
+	}
+
+	if tag, ok := filters["tag"].(string); ok && tag != "" {
+		whereClauses = append(whereClauses, `EXISTS (
+			SELECT 1
+			FROM bookmark_tags bt2
+			JOIN tags t2 ON bt2.tag_id = t2.id
+			WHERE bt2.bookmark_id = bookmarks.id AND t2.name = ?
+		)`)
+		args = append(args, tag)
+	}
+
+	if folderID, ok := extractFilterInt(filters, "folder_id"); ok && folderID > 0 {
+		whereClauses = append(whereClauses, `EXISTS (
+			SELECT 1
+			FROM bookmark_folders bf2
+			WHERE bf2.bookmark_id = bookmarks.id AND bf2.folder_id = ?
+		)`)
+		args = append(args, folderID)
+	}
+
 	if len(whereClauses) > 0 {
 		query += " WHERE " + strings.Join(whereClauses, " AND ")
 	}
@@ -283,6 +337,24 @@ func (r *BookmarkRepository) Count(filters map[string]interface{}) (int, error) 
 	var count int
 	err := r.db.QueryRow(query, args...).Scan(&count)
 	return count, err
+}
+
+func extractFilterInt(filters map[string]interface{}, key string) (int, bool) {
+	value, ok := filters[key]
+	if !ok {
+		return 0, false
+	}
+
+	switch v := value.(type) {
+	case int:
+		return v, true
+	case int64:
+		return int(v), true
+	case float64:
+		return int(v), true
+	default:
+		return 0, false
+	}
 }
 
 // getOrCreateTagTx 在事务中获取或创建标签

@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"ai-bookmark-service/models"
+	"github.com/riccilnl/LinkGenie/models"
 )
 
 // ValidateBookmarkCreate 验证书签创建请求

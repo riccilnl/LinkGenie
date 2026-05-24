@@ -5,8 +5,8 @@ import (
 	"log"
 	"math"
 
-	"ai-bookmark-service/db"
-	"ai-bookmark-service/models"
+	"github.com/riccilnl/LinkGenie/db"
+	"github.com/riccilnl/LinkGenie/models"
 )
 
 // TagOptimizer 标签优化服务
@@ -349,8 +349,8 @@ func (o *TagOptimizer) mergeTags(sourceID, targetID int) error {
 	}
 
 	// 4. 更新target标签的使用次数
-	if err := o.tagRepo.IncrementUsage(targetID); err != nil {
-		log.Printf("⚠️ 更新使用次数失败: %v", err)
+	if err := o.tagRepo.RecalculateUsageCounts(); err != nil {
+		log.Printf("⚠️ 重算使用次数失败: %v", err)
 	}
 
 	return nil

@@ -1,5 +1,5 @@
-const CACHE_NAME = 'bookmark-app-v6';
-const RUNTIME_CACHE = 'runtime-cache-v1';
+const CACHE_NAME = 'bookmark-app-v7';
+const RUNTIME_CACHE = 'runtime-cache-v2';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -12,12 +12,61 @@ const ASSETS_TO_CACHE = [
     '/css/mobile.css',
     '/js/config.js',
     '/js/ui.js',
+    '/js/store.js',
+    '/js/api-client.js',
     '/js/app.js'
 ];
 
+function shouldUseNetworkFirst(request, url) {
+    if (request.mode === 'navigate') {
+        return true;
+    }
+
+    if (url.pathname === '/' || url.pathname === '/index.html' || url.pathname === '/manifest.json') {
+        return true;
+    }
+
+    if (url.pathname.startsWith('/js/') || url.pathname.startsWith('/css/')) {
+        return true;
+    }
+
+    return false;
+}
+
+async function networkFirst(request, cacheName) {
+    try {
+        const response = await fetch(request);
+        if (response.ok) {
+            const cache = await caches.open(cacheName);
+            cache.put(request, response.clone());
+        }
+        return response;
+    } catch (error) {
+        const cachedResponse = await caches.match(request);
+        if (cachedResponse) {
+            return cachedResponse;
+        }
+        throw error;
+    }
+}
+
+async function cacheFirst(request, cacheName) {
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+        return cachedResponse;
+    }
+
+    const response = await fetch(request);
+    if (response.ok) {
+        const cache = await caches.open(cacheName);
+        cache.put(request, response.clone());
+    }
+    return response;
+}
+
 // 安装 Service Worker
 self.addEventListener('install', (event) => {
-    console.log('[SW] Installing Service Worker v6...');
+    console.log('[SW] Installing Service Worker v7...');
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
@@ -30,7 +79,7 @@ self.addEventListener('install', (event) => {
 
 // 激活并清理旧缓存
 self.addEventListener('activate', (event) => {
-    console.log('[SW] Activating Service Worker v6...');
+    console.log('[SW] Activating Service Worker v7...');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
@@ -58,17 +107,7 @@ self.addEventListener('fetch', (event) => {
     // API 请求 - 网络优先,缓存降级
     if (url.pathname.startsWith('/api/')) {
         event.respondWith(
-            fetch(request)
-                .then((response) => {
-                    // 只缓存成功的响应
-                    if (response.ok) {
-                        const clonedResponse = response.clone();
-                        caches.open(RUNTIME_CACHE).then((cache) => {
-                            cache.put(request, clonedResponse);
-                        });
-                    }
-                    return response;
-                })
+            networkFirst(request, RUNTIME_CACHE)
                 .catch(() => {
                     // 网络失败,尝试从缓存读取
                     console.log('[SW] Network failed, using cache for:', url.pathname);
@@ -90,24 +129,23 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // 静态资源 - 缓存优先,网络降级
-    event.respondWith(
-        caches.match(request)
-            .then((cachedResponse) => {
-                if (cachedResponse) {
-                    return cachedResponse;
-                }
-
-                return fetch(request).then((response) => {
-                    // 缓存新的静态资源
-                    if (response.ok) {
-                        const clonedResponse = response.clone();
-                        caches.open(CACHE_NAME).then((cache) => {
-                            cache.put(request, clonedResponse);
-                        });
+    // 前端壳资源 - 网络优先,缓存降级,避免长期吃旧缓存
+    if (shouldUseNetworkFirst(request, url)) {
+        event.respondWith(
+            networkFirst(request, CACHE_NAME).catch(() => {
+                return caches.match(request).then((cachedResponse) => {
+                    if (cachedResponse) {
+                        return cachedResponse;
                     }
-                    return response;
+                    return caches.match('/index.html');
                 });
             })
+        );
+        return;
+    }
+
+    // 其他静态资源 - 缓存优先,网络降级
+    event.respondWith(
+        cacheFirst(request, CACHE_NAME)
     );
 });
