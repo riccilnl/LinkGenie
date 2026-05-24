@@ -59,6 +59,8 @@ mcp/claude_desktop_config.json
 # 测试代码
 Test/
 tests/
+internal/
+**/*_test.go
 
 # 同步脚本（避免泄露私有仓库信息）
 scripts/sync-to-public.sh
